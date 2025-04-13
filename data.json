@@ -1,0 +1,236 @@
+{
+    "player": {
+        "nonce": 21,
+        "data": {
+            "level": 2,
+            "exp": 114,
+            "last_check_point": 340508,
+            "energy": 237,
+            "cost_info": 1,
+            "current_cost": 4,
+            "redeem_info": [
+                2,
+                2,
+                3,
+                0,
+                0,
+                0,
+                0,
+                0
+            ],
+            "last_interest_stamp": 12902082081696,
+            "objects": [
+                {
+                    "modifier_info": "1688849860612939",
+                    "cards": [
+                        0,
+                        1,
+                        2,
+                        0,
+                        1,
+                        1,
+                        2,
+                        0
+                    ],
+                    "attributes": [
+                        2,
+                        2,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "modifier_info": "844424930480977",
+                    "cards": [
+                        0,
+                        1,
+                        2,
+                        0,
+                        1,
+                        2,
+                        2,
+                        0
+                    ],
+                    "attributes": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            ],
+            "local": [
+                755,
+                635,
+                800,
+                0,
+                2,
+                0,
+                0,
+                1012
+            ],
+            "cards": [
+                {
+                    "duration": 40,
+                    "attributes": [
+                        -10,
+                        -10,
+                        20,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 60,
+                    "attributes": [
+                        15,
+                        0,
+                        -10,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 70,
+                    "attributes": [
+                        0,
+                        15,
+                        -10,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 65,
+                    "attributes": [
+                        10,
+                        0,
+                        -30,
+                        0,
+                        20,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 64,
+                    "attributes": [
+                        3,
+                        -4,
+                        0,
+                        -3,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 149,
+                    "attributes": [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 159,
+                    "attributes": [
+                        1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 139,
+                    "attributes": [
+                        0,
+                        -1,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 198,
+                    "attributes": [
+                        -3,
+                        4,
+                        -1,
+                        -1,
+                        0,
+                        0,
+                        1,
+                        0
+                    ]
+                },
+                {
+                    "duration": 208,
+                    "attributes": [
+                        -1,
+                        -1,
+                        0,
+                        0,
+                        2,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 168,
+                    "attributes": [
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                },
+                {
+                    "duration": 148,
+                    "attributes": [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            ]
+        }
+    },
+    "state": {
+        "bounty_pool": 46240668,
+        "counter": 349047
+    }
+}
