@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Automata全能助手
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.1.1
 // @description  监控zkwasm-automata API请求，优化程序组合，自动点击火箭和确认按钮
 // @author       溶进咖啡的糖  AI助手
 // @match        https://automata.zkplay.app/*
