@@ -600,6 +600,53 @@
         }
     }
 
+    // 点击屏幕最下方
+    function clickBottomOfScreen() {
+        console.log('[程序优化器] 尝试点击屏幕最下方...');
+        try {
+            // 获取屏幕高度
+            const screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            // 计算屏幕最下方的坐标（留出50像素的边界）
+            const bottomY = screenHeight - 50;
+            // 中间位置
+            const centerX = (window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth) / 2;
+            
+            // 创建点击事件
+            try {
+                // 尝试使用MouseEvent
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: centerX,
+                    clientY: bottomY
+                });
+                
+                // 获取最下方的元素并点击
+                // 第一种方法：使用elementFromPoint
+                const element = document.elementFromPoint(centerX, bottomY);
+                if (element) {
+                    element.dispatchEvent(clickEvent);
+                    console.log(`[程序优化器] 成功点击屏幕最下方元素: ${element.tagName}`);
+                } else {
+                    // 如果没有找到元素，尝试点击文档体
+                    document.body.dispatchEvent(clickEvent);
+                    console.log('[程序优化器] 没有在指定位置找到元素，已点击文档体');
+                }
+            } catch (e) {
+                console.error(`[程序优化器] 点击屏幕最下方失败: ${e.message}`);
+                // 备用方案：尝试点击页面上最后一个元素
+                const allElements = document.querySelectorAll('*');
+                if (allElements && allElements.length > 0) {
+                    const lastElement = allElements[allElements.length - 1];
+                    simulateClick(lastElement);
+                    console.log(`[程序优化器] 尝试点击页面最后一个元素: ${lastElement.tagName}`);
+                }
+            }
+        } catch (e) {
+            console.error(`[程序优化器] 点击屏幕最下方时出错: ${e.message}`);
+        }
+    }
+    
     // 监控和点击确认按钮
     function testConfirmButton() {
         console.log('[程序优化器] 开始测试确认按钮点击...');
@@ -615,6 +662,8 @@
                     if (button) {
                         if (simulateClick(button)) {
                             console.log('[程序优化器] 成功点击确认按钮 (通过图片)');
+                            // 确认按钮点击后，延迟1秒再点击屏幕最下方
+                            setTimeout(clickBottomOfScreen, 1000);
                             return;
                         }
                     }
@@ -622,6 +671,8 @@
                     // 如果上面的方法没有找到按钮，尝试直接点击图片
                     if (simulateClick(img)) {
                         console.log('[程序优化器] 成功点击确认图片');
+                        // 确认按钮点击后，延迟1秒再点击屏幕最下方
+                        setTimeout(clickBottomOfScreen, 1000);
                         return;
                     }
                 } catch (e) {
@@ -668,6 +719,8 @@
                         try {
                             if (simulateClick(button)) {
                                 console.log('[程序优化器] 成功点击确认按钮');
+                                // 确认按钮点击后，延迟1秒再点击屏幕最下方
+                                setTimeout(clickBottomOfScreen, 1000);
                                 return; // 只点击第一个找到的确认按钮
                             } else {
                                 console.log('[程序优化器] 点击确认按钮失败');
@@ -690,6 +743,8 @@
                     try {
                         if (simulateClick(btn)) {
                             console.log('[程序优化器] 成功点击 rocket-popup-confirm-button 中的按钮');
+                            // 确认按钮点击后，延迟1秒再点击屏幕最下方
+                            setTimeout(clickBottomOfScreen, 1000);
                             return;
                         }
                     } catch (e) {
@@ -701,6 +756,8 @@
                 try {
                     if (simulateClick(popupConfirm)) {
                         console.log('[程序优化器] 成功点击 rocket-popup-confirm-button 元素');
+                        // 确认按钮点击后，延迟1秒再点击屏幕最下方
+                        setTimeout(clickBottomOfScreen, 1000);
                         return;
                     }
                 } catch (e) {
