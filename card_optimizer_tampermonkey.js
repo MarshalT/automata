@@ -2,10 +2,11 @@
 // @name         程序组合优化器
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  监控zkwasm-automata API请求，优化程序组合
+// @description  监控zkwasm-automata API请求，优化程序组合，自动点击火箭和确认按钮
 // @author       AI助手
 // @match        https://automata.zkplay.app/*
 // @match        *://zkwasm-automata.zkwasm.ai/*
+// @match        http://114.119.173.203/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @grant        GM_log
@@ -169,7 +170,13 @@
 
     // 添加调试信息到面板
     function addDebugInfo(message) {
-        return; // 禁用调试信息
+        // 始终在控制台输出火箭和确认按钮监控相关信息
+        if (message.includes('rocket-image') || message.includes('确认按钮')) {
+            console.log(`[程序优化器] ${message}`);
+            return;
+        }
+        
+        return; // 禁用其他调试信息
         if (!dataStatus) return; // 避免在DOM加载前调用
 
         const debugInfo = document.createElement('div');
@@ -425,8 +432,16 @@
             ];
 
             // 递归搜索对象中的程序数组
-            function findCardsInObject(obj, path = '') {
+            function findCardsInObject(obj, path = '', visitedObjects = new WeakSet()) {
+                // 防止空对象或非对象类型
                 if (!obj || typeof obj !== 'object') return null;
+                
+                // 防止循环引用和无限递归
+                if (visitedObjects.has(obj)) return null;
+                visitedObjects.add(obj);
+                
+                // 限制搜索深度
+                if (path.split('.').length > 10) return null;
 
                 // 检查当前对象是否是程序数组
                 if (Array.isArray(obj) && obj.length > 0 &&
@@ -438,9 +453,17 @@
 
                 // 递归搜索子对象
                 for (const key in obj) {
-                    if (obj[key] && typeof obj[key] === 'object') {
-                        const result = findCardsInObject(obj[key], `${path}.${key}`);
-                        if (result) return result;
+                    // 跳过特定的属性以避免问题
+                    if (key === 'window' || key === 'self' || key === 'parent' || key === 'top' || key === 'frames' || key === 'document') continue;
+                    
+                    try {
+                        if (obj[key] && typeof obj[key] === 'object') {
+                            const result = findCardsInObject(obj[key], `${path}.${key}`, visitedObjects);
+                            if (result) return result;
+                        }
+                    } catch (e) {
+                        // 忽略访问错误
+                        continue;
                     }
                 }
 
@@ -467,8 +490,24 @@
                 }
             }
 
-            // 如果上面的方法失败，尝试搜索整个 window 对象
-            return findCardsInObject(window, 'window');
+            // 如果上面的方法失败，尝试搜索 window 对象的一些常见属性
+            // 但不搜索整个 window 对象，避免递归过深
+            try {
+                for (const key of ['app', 'data', 'store', 'state', 'game', 'cards', 'programs']) {
+                    try {
+                        if (window[key] && typeof window[key] === 'object') {
+                            const result = findCardsInObject(window[key], `window.${key}`);
+                            if (result) return result;
+                        }
+                    } catch (e) {
+                        console.error(`[程序优化器] 搜索 window.${key} 时出错: ${e.message}`);
+                        continue;
+                    }
+                }
+            } catch (e) {
+                console.error(`[程序优化器] 搜索 window 属性时出错: ${e.message}`);
+            }
+            return null;
         };
 
         const extractedCards = extractData();
@@ -481,8 +520,162 @@
         }
     }
 
+    // 监控和自动点击 rocket-image 元素
+    function monitorRocketImage() {
+        // 检查并点击火箭图像
+        const rocketElements = document.querySelectorAll('.rocket-image');
+        if (rocketElements && rocketElements.length > 0) {
+            console.log('[程序优化器] 发现 rocket-image 元素，正在点击...');
+            for (const rocket of rocketElements) {
+                try {
+                    rocket.click();
+                    console.log('[程序优化器] 已点击 rocket-image 元素');
+                } catch (e) {
+                    console.error(`[程序优化器] 点击 rocket-image 失败: ${e.message}`);
+                }
+            }
+        }
+        
+        // 检查并点击确认按钮
+        monitorConfirmButton();
+        
+        // 持续监控
+        setTimeout(monitorRocketImage, 2000); // 每2秒检查一次
+    }
+    
+    // 模拟点击元素的辅助函数
+    function simulateClick(element) {
+        try {
+            // 方式1: 直接点击
+            element.click();
+            
+            // 方式2: 创建并触发点击事件
+            const clickEvent = document.createEvent('MouseEvents');
+            clickEvent.initEvent('click', true, true);
+            element.dispatchEvent(clickEvent);
+            
+            // 方式3: 创建并触发鼠标按下和释放事件
+            const mousedownEvent = new MouseEvent('mousedown', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+            const mouseupEvent = new MouseEvent('mouseup', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            });
+            element.dispatchEvent(mousedownEvent);
+            element.dispatchEvent(mouseupEvent);
+            
+            // 方式4: 触发元素的 onmousedown/onmouseup/onclick 属性
+            if (typeof element.onmousedown === 'function') element.onmousedown();
+            if (typeof element.onmouseup === 'function') element.onmouseup();
+            if (typeof element.onclick === 'function') element.onclick();
+            
+            return true;
+        } catch (e) {
+            console.error(`[程序优化器] 模拟点击失败: ${e.message}`);
+            return false;
+        }
+    }
+    
+    // 监控和自动点击确认按钮
+    function monitorConfirmButton() {
+        try {
+            // 先尝试用户提供的精确选择器
+            let confirmButtons = document.querySelectorAll('.rocket-popup-confirm-button .confirm-button-scale .image-button');
+            if (!confirmButtons || confirmButtons.length === 0) {
+                confirmButtons = document.querySelectorAll('.rocket-popup-confirm-button button');
+            }
+            if (!confirmButtons || confirmButtons.length === 0) {
+                confirmButtons = document.querySelectorAll('.confirm-button-scale .image-button');
+            }
+            if (!confirmButtons || confirmButtons.length === 0) {
+                confirmButtons = document.querySelectorAll('.confirm-button-scale button');
+            }
+            if (!confirmButtons || confirmButtons.length === 0) {
+                confirmButtons = document.querySelectorAll('button.image-button');
+            }
+            
+            // 如果上述选择器都没找到，尝试直接查找包含 confirm 的图片
+            if (!confirmButtons || confirmButtons.length === 0) {
+                const images = document.querySelectorAll('img[src*="confirm"]');
+                if (images && images.length > 0) {
+                    console.log(`[程序优化器] 发现 ${images.length} 个包含 confirm 的图片，尝试点击...`);
+                    for (const img of images) {
+                        try {
+                            // 尝试各种方式找到按钮并点击
+                            const button = img.closest('button') || img.parentElement;
+                            if (button) {
+                                if (simulateClick(button)) {
+                                    console.log('[程序优化器] 已点击确认按钮 (通过图片)');
+                                    return;
+                                }
+                            }
+                            
+                            // 如果上面的方法没有找到按钮，尝试直接点击图片
+                            if (simulateClick(img)) {
+                                console.log('[程序优化器] 已点击确认图片');
+                                return;
+                            }
+                        } catch (e) {
+                            console.error(`[程序优化器] 点击确认图片失败: ${e.message}`);
+                        }
+                    }
+                }
+                
+                // 尝试查找包含 rocket-popup-confirm-button 的元素
+                const popupConfirm = document.querySelector('.rocket-popup-confirm-button');
+                if (popupConfirm) {
+                    console.log('[程序优化器] 发现 rocket-popup-confirm-button 元素，尝试点击其中的按钮...');
+                    const buttons = popupConfirm.querySelectorAll('button');
+                    if (buttons && buttons.length > 0) {
+                        for (const btn of buttons) {
+                            try {
+                                if (simulateClick(btn)) {
+                                    console.log('[程序优化器] 已点击 rocket-popup-confirm-button 中的按钮');
+                                    return;
+                                }
+                            } catch (e) {
+                                console.error(`[程序优化器] 点击 rocket-popup-confirm-button 中的按钮失败: ${e.message}`);
+                            }
+                        }
+                    } else {
+                        // 如果没有找到按钮，尝试直接点击容器
+                        try {
+                            if (simulateClick(popupConfirm)) {
+                                console.log('[程序优化器] 已点击 rocket-popup-confirm-button 元素');
+                                return;
+                            }
+                        } catch (e) {
+                            console.error(`[程序优化器] 点击 rocket-popup-confirm-button 元素失败: ${e.message}`);
+                        }
+                    }
+                }
+                
+                return;
+            }
+            
+            // 如果找到确认按钮，则点击
+            console.log(`[程序优化器] 发现 ${confirmButtons.length} 个确认按钮，正在点击...`);
+            for (const button of confirmButtons) {
+                try {
+                    if (simulateClick(button)) {
+                        console.log('[程序优化器] 已点击确认按钮');
+                    }
+                } catch (e) {
+                    console.error(`[程序优化器] 点击确认按钮失败: ${e.message}`);
+                }
+            }
+        } catch (e) {
+            console.error(`[程序优化器] 监控确认按钮时出错: ${e.message}`);
+        }
+    }
+
     // 启动定期检查
     setTimeout(scheduleDataCheck, 3000); // 页面加载3秒后开始检查
+    setTimeout(monitorRocketImage, 3000); // 同时启动 rocket-image 监控
 
     // 处理API响应
     function processAPIResponse(response, url) {
@@ -582,8 +775,16 @@
         // 方式6: 寻找任何包含程序属性的数组
         else if (response && typeof response === 'object') {
             // 递归搜索对象中的程序数据
-            function findCardsInObject(obj, path = '') {
+            function findCardsInObject(obj, path = '', visitedObjects = new WeakSet()) {
+                // 防止空对象或非对象类型
                 if (!obj || typeof obj !== 'object') return null;
+                
+                // 防止循环引用和无限递归
+                if (visitedObjects.has(obj)) return null;
+                visitedObjects.add(obj);
+                
+                // 限制搜索深度
+                if (path.split('.').length > 10) return null;
 
                 // 检查当前对象是否是程序数组
                 if (Array.isArray(obj) && obj.length > 0 && typeof obj[0] === 'object') {
@@ -599,9 +800,17 @@
 
                 // 递归搜索子对象
                 for (const key in obj) {
-                    if (obj[key] && typeof obj[key] === 'object') {
-                        const result = findCardsInObject(obj[key], `${path}.${key}`);
-                        if (result) return result;
+                    // 跳过特定的属性以避免问题
+                    if (key === 'window' || key === 'self' || key === 'parent' || key === 'top' || key === 'frames' || key === 'document') continue;
+                    
+                    try {
+                        if (obj[key] && typeof obj[key] === 'object') {
+                            const result = findCardsInObject(obj[key], `${path}.${key}`, visitedObjects);
+                            if (result) return result;
+                        }
+                    } catch (e) {
+                        // 忽略访问错误
+                        continue;
                     }
                 }
 
@@ -617,9 +826,22 @@
         // 如果找到程序数据
         if (cards && cards.length > 0) {
             cardsData = cards;
-            dataStatus.innerHTML = `<div style="color:#4CAF50;font-weight:bold;">已获取 ${cardsData.length} 张程序数据</div>`;
-            optimizationControls.style.display = 'block';
-            manualDataControls.style.display = 'none'; // 隐藏手动控制区
+            
+            // 确保 DOM 元素存在再操作
+            if (dataStatus) {
+                dataStatus.innerHTML = `<div style="color:#4CAF50;font-weight:bold;">已获取 ${cardsData.length} 张程序数据</div>`;
+            } else {
+                console.log('[程序优化器] dataStatus 元素不存在');
+            }
+            
+            // 确保 DOM 元素存在再操作
+            if (optimizationControls) {
+                optimizationControls.style.display = 'block';
+            }
+            
+            if (manualDataControls) {
+                manualDataControls.style.display = 'none'; // 隐藏手动控制区
+            }
 
             // 显示前3张程序的数据示例
             const sampleSize = Math.min(3, cardsData.length);
@@ -631,7 +853,15 @@
             if (cardsData.length >= 8) { // 确保有足够的程序进行组合
                 addDebugInfo('自动运行优化...');
                 setTimeout(() => {
-                    runOptimizerButton.click();
+                    // 再次检查按钮是否存在，防止DOM变化
+                    const runButton = document.getElementById('run-optimizer-button');
+                    if (runButton) {
+                        runButton.click();
+                        console.log('[程序优化器] 已自动点击优化按钮');
+                    } else {
+                        console.error('[程序优化器] 找不到优化按钮，无法自动运行');
+                        addDebugInfo('找不到优化按钮，无法自动运行');
+                    }
                 }, 1000);
             }
         } else {
