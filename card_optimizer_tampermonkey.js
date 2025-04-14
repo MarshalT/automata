@@ -520,53 +520,46 @@
         }
     }
 
-    // 监控和自动点击 rocket-image 元素
-    function monitorRocketImage() {
-        // 检查并点击火箭图像
-        const rocketElements = document.querySelectorAll('.rocket-image');
-        if (rocketElements && rocketElements.length > 0) {
-            console.log('[程序优化器] 发现 rocket-image 元素，正在点击...');
-            for (const rocket of rocketElements) {
-                try {
-                    rocket.click();
-                    console.log('[程序优化器] 已点击 rocket-image 元素');
-                } catch (e) {
-                    console.error(`[程序优化器] 点击 rocket-image 失败: ${e.message}`);
-                }
-            }
-        }
-        
-        // 检查并点击确认按钮
-        monitorConfirmButton();
-        
-        // 持续监控
-        setTimeout(monitorRocketImage, 2000); // 每2秒检查一次
-    }
-    
+
     // 模拟点击元素的辅助函数
     function simulateClick(element) {
         try {
             // 方式1: 直接点击
             element.click();
             
-            // 方式2: 创建并触发点击事件
+            // 方式2: 创建并触发点击事件 - 兼容性更好的方式
             const clickEvent = document.createEvent('MouseEvents');
             clickEvent.initEvent('click', true, true);
             element.dispatchEvent(clickEvent);
             
-            // 方式3: 创建并触发鼠标按下和释放事件
-            const mousedownEvent = new MouseEvent('mousedown', {
-                bubbles: true,
-                cancelable: true,
-                view: window
-            });
-            const mouseupEvent = new MouseEvent('mouseup', {
-                bubbles: true,
-                cancelable: true,
-                view: window
-            });
-            element.dispatchEvent(mousedownEvent);
-            element.dispatchEvent(mouseupEvent);
+            // 方式3: 创建并触发鼠标按下和释放事件 - 不使用view属性
+            try {
+                // 方式3a: 使用老的initEvent方式
+                const mousedownEvent = document.createEvent('MouseEvents');
+                mousedownEvent.initEvent('mousedown', true, true);
+                element.dispatchEvent(mousedownEvent);
+                
+                const mouseupEvent = document.createEvent('MouseEvents');
+                mouseupEvent.initEvent('mouseup', true, true);
+                element.dispatchEvent(mouseupEvent);
+            } catch (innerError) {
+                console.log(`[程序优化器] 旧事件方式失败: ${innerError.message}, 尝试新方式`);
+                // 如果MouseEvent对象可用，但不支持view属性
+                try {
+                    const mousedownEvent = new MouseEvent('mousedown', {
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    const mouseupEvent = new MouseEvent('mouseup', {
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    element.dispatchEvent(mousedownEvent);
+                    element.dispatchEvent(mouseupEvent);
+                } catch (mouseEventError) {
+                    console.log(`[程序优化器] 新MouseEvent方式也失败: ${mouseEventError.message}`);
+                }
+            }
             
             // 方式4: 触发元素的 onmousedown/onmouseup/onclick 属性
             if (typeof element.onmousedown === 'function') element.onmousedown();
@@ -579,103 +572,158 @@
             return false;
         }
     }
-    
-    // 监控和自动点击确认按钮
-    function monitorConfirmButton() {
-        try {
-            // 先尝试用户提供的精确选择器
-            let confirmButtons = document.querySelectorAll('.rocket-popup-confirm-button .confirm-button-scale .image-button');
-            if (!confirmButtons || confirmButtons.length === 0) {
-                confirmButtons = document.querySelectorAll('.rocket-popup-confirm-button button');
-            }
-            if (!confirmButtons || confirmButtons.length === 0) {
-                confirmButtons = document.querySelectorAll('.confirm-button-scale .image-button');
-            }
-            if (!confirmButtons || confirmButtons.length === 0) {
-                confirmButtons = document.querySelectorAll('.confirm-button-scale button');
-            }
-            if (!confirmButtons || confirmButtons.length === 0) {
-                confirmButtons = document.querySelectorAll('button.image-button');
-            }
+
+    // 监控和点击火箭图像
+    function testRocketImage() {
+        console.log('[程序优化器] 开始测试火箭图像点击...');
+        const rocketElements = document.querySelectorAll('.rocket-image');
+        
+        if (rocketElements && rocketElements.length > 0) {
+            console.log(`[程序优化器] 发现 ${rocketElements.length} 个火箭图像元素`);
             
-            // 如果上述选择器都没找到，尝试直接查找包含 confirm 的图片
-            if (!confirmButtons || confirmButtons.length === 0) {
-                const images = document.querySelectorAll('img[src*="confirm"]');
-                if (images && images.length > 0) {
-                    console.log(`[程序优化器] 发现 ${images.length} 个包含 confirm 的图片，尝试点击...`);
-                    for (const img of images) {
-                        try {
-                            // 尝试各种方式找到按钮并点击
-                            const button = img.closest('button') || img.parentElement;
-                            if (button) {
-                                if (simulateClick(button)) {
-                                    console.log('[程序优化器] 已点击确认按钮 (通过图片)');
-                                    return;
-                                }
-                            }
-                            
-                            // 如果上面的方法没有找到按钮，尝试直接点击图片
-                            if (simulateClick(img)) {
-                                console.log('[程序优化器] 已点击确认图片');
-                                return;
-                            }
-                        } catch (e) {
-                            console.error(`[程序优化器] 点击确认图片失败: ${e.message}`);
-                        }
-                    }
-                }
-                
-                // 尝试查找包含 rocket-popup-confirm-button 的元素
-                const popupConfirm = document.querySelector('.rocket-popup-confirm-button');
-                if (popupConfirm) {
-                    console.log('[程序优化器] 发现 rocket-popup-confirm-button 元素，尝试点击其中的按钮...');
-                    const buttons = popupConfirm.querySelectorAll('button');
-                    if (buttons && buttons.length > 0) {
-                        for (const btn of buttons) {
-                            try {
-                                if (simulateClick(btn)) {
-                                    console.log('[程序优化器] 已点击 rocket-popup-confirm-button 中的按钮');
-                                    return;
-                                }
-                            } catch (e) {
-                                console.error(`[程序优化器] 点击 rocket-popup-confirm-button 中的按钮失败: ${e.message}`);
-                            }
-                        }
-                    } else {
-                        // 如果没有找到按钮，尝试直接点击容器
-                        try {
-                            if (simulateClick(popupConfirm)) {
-                                console.log('[程序优化器] 已点击 rocket-popup-confirm-button 元素');
-                                return;
-                            }
-                        } catch (e) {
-                            console.error(`[程序优化器] 点击 rocket-popup-confirm-button 元素失败: ${e.message}`);
-                        }
-                    }
-                }
-                
-                return;
-            }
-            
-            // 如果找到确认按钮，则点击
-            console.log(`[程序优化器] 发现 ${confirmButtons.length} 个确认按钮，正在点击...`);
-            for (const button of confirmButtons) {
+            for (const rocket of rocketElements) {
                 try {
-                    if (simulateClick(button)) {
-                        console.log('[程序优化器] 已点击确认按钮');
+                    if (simulateClick(rocket)) {
+                        console.log('[程序优化器] 成功点击火箭图像');
+                        // 火箭图像点击成功后，延迟2秒再点击确认按钮
+                        setTimeout(testConfirmButton, 2000);
+                        return; // 只点击第一个找到的火箭图像
+                    } else {
+                        console.log('[程序优化器] 点击火箭图像失败');
                     }
                 } catch (e) {
-                    console.error(`[程序优化器] 点击确认按钮失败: ${e.message}`);
+                    console.error(`[程序优化器] 点击火箭图像时出错: ${e.message}`);
                 }
             }
-        } catch (e) {
-            console.error(`[程序优化器] 监控确认按钮时出错: ${e.message}`);
+        } else {
+            console.log('[程序优化器] 未找到火箭图像元素');
         }
+    }
+
+    // 监控和点击确认按钮
+    function testConfirmButton() {
+        console.log('[程序优化器] 开始测试确认按钮点击...');
+        
+        // 尝试通过查找图片元素
+        const confirmImages = document.querySelectorAll('img[src*="confirm"], img[src*="Confirm"]');
+        if (confirmImages && confirmImages.length > 0) {
+            console.log(`[程序优化器] 发现 ${confirmImages.length} 个确认图片元素`);
+            for (const img of confirmImages) {
+                try {
+                    // 尝试各种方式找到按钮并点击
+                    const button = img.closest('button') || img.parentElement;
+                    if (button) {
+                        if (simulateClick(button)) {
+                            console.log('[程序优化器] 成功点击确认按钮 (通过图片)');
+                            return;
+                        }
+                    }
+                    
+                    // 如果上面的方法没有找到按钮，尝试直接点击图片
+                    if (simulateClick(img)) {
+                        console.log('[程序优化器] 成功点击确认图片');
+                        return;
+                    }
+                } catch (e) {
+                    console.error(`[程序优化器] 点击确认图片失败: ${e.message}`);
+                }
+            }
+        }
+        
+        // 尝试多种可能的确认按钮选择器
+        const selectors = [
+            '.rocket-popup-confirm-button .confirm-button-scale .image-button',
+            '.rocket-popup-confirm-button button',
+            '.confirm-button-scale .image-button',
+            '.confirm-button-scale button',
+            'button.image-button',
+            '.popup-window button',
+            '.popup-container button',
+            // jQuery选择器可能不兼容，移除这些
+            // 'button:contains("确认")',
+            // 'button:contains("确定")',
+            // 'button:contains("Confirm")',
+            // 'button:contains("OK")',
+            // 改用文本内容匹配
+            'button'
+        ];
+        
+        let foundButtons = false;
+        
+        for (const selector of selectors) {
+            const buttons = document.querySelectorAll(selector);
+            if (buttons && buttons.length > 0) {
+                console.log(`[程序优化器] 使用选择器 "${selector}" 找到 ${buttons.length} 个按钮`);
+                foundButtons = true;
+                
+                for (const button of buttons) {
+                    // 检查按钮文本
+                    const buttonText = button.textContent || button.innerText || '';
+                    const isConfirmButton = buttonText.includes('确认') || 
+                                           buttonText.includes('确定') || 
+                                           buttonText.includes('Confirm') || 
+                                           buttonText.includes('OK');
+                    
+                    if (selector !== 'button' || isConfirmButton) {
+                        try {
+                            if (simulateClick(button)) {
+                                console.log('[程序优化器] 成功点击确认按钮');
+                                return; // 只点击第一个找到的确认按钮
+                            } else {
+                                console.log('[程序优化器] 点击确认按钮失败');
+                            }
+                        } catch (e) {
+                            console.error(`[程序优化器] 点击确认按钮时出错: ${e.message}`);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 尝试查找包含 rocket-popup-confirm-button 的元素
+        const popupConfirm = document.querySelector('.rocket-popup-confirm-button');
+        if (popupConfirm) {
+            console.log('[程序优化器] 发现 rocket-popup-confirm-button 元素，尝试点击其中的按钮...');
+            const buttons = popupConfirm.querySelectorAll('button');
+            if (buttons && buttons.length > 0) {
+                for (const btn of buttons) {
+                    try {
+                        if (simulateClick(btn)) {
+                            console.log('[程序优化器] 成功点击 rocket-popup-confirm-button 中的按钮');
+                            return;
+                        }
+                    } catch (e) {
+                        console.error(`[程序优化器] 点击 rocket-popup-confirm-button 中的按钮失败: ${e.message}`);
+                    }
+                }
+            } else {
+                // 如果没有找到按钮，尝试直接点击容器
+                try {
+                    if (simulateClick(popupConfirm)) {
+                        console.log('[程序优化器] 成功点击 rocket-popup-confirm-button 元素');
+                        return;
+                    }
+                } catch (e) {
+                    console.error(`[程序优化器] 点击 rocket-popup-confirm-button 元素失败: ${e.message}`);
+                }
+            }
+        }
+        
+        if (!foundButtons) {
+            console.log('[程序优化器] 未找到确认按钮');
+        }
+    }
+
+    // 定义一个函数来运行测试
+    function runTest() {
+        console.log('[程序优化器] 开始执行火箭点击测试...');
+        testRocketImage();
     }
 
     // 启动定期检查
     setTimeout(scheduleDataCheck, 3000); // 页面加载3秒后开始检查
-    setTimeout(monitorRocketImage, 3000); // 同时启动 rocket-image 监控
+    setTimeout(runTest, 3000); // 同时启动火箭点击测试
+    setInterval(runTest, 10000); // 每10秒运行一次测试
 
     // 处理API响应
     function processAPIResponse(response, url) {
