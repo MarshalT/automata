@@ -150,6 +150,91 @@
                 </div>
             </div>
         </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-bottom: 15px; background-color: rgba(18, 119, 219, 0.7); border-radius: 5px; border: 1px solid #3498db;">
+            <div style="font-size: 16px; font-weight: bold;">自动点击火箭</div>
+            <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                <input type="checkbox" id="auto-click-toggle" checked>
+                <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color:rgb(160, 36, 23); transition: .4s; border-radius: 34px;"></span>
+            </label>
+            
+            <!-- 独立样式表，避免嵌套引起的问题 -->
+            <style>
+                /* 开关基本样式 */
+                .switch {
+                    position: relative;
+                    display: inline-block;
+                    width: 50px;
+                    height: 24px;
+                }
+                
+                /* 隐藏原始复选框 */
+                .switch input {
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                }
+                
+                /* 滑块基本样式 */
+                .slider {
+                    position: absolute;
+                    cursor: pointer;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-color:rgb(151, 31, 22); /* 默认红色(关闭状态) */
+                    transition: .4s;
+                    border-radius: 34px;
+                }
+                
+                /* 开启状态 - 绿色 */
+                #auto-click-toggle:checked + .slider {
+                    background-color: #4CAF50;
+                }
+                
+                #auto-click-toggle:focus + .slider {
+                    box-shadow: 0 0 1px #4CAF50;
+                }
+                /* 滑块圆形按钮 */
+                .slider:before {
+                    position: absolute;
+                    content: "";
+                    height: 16px;
+                    width: 16px;
+                    left: 4px;
+                    bottom: 4px;
+                    background-color: white;
+                    transition: .4s;
+                    border-radius: 50%;
+                }
+                
+                /* 开启状态时滑块位置 */
+                #auto-click-toggle:checked + .slider:before {
+                    transform: translateX(26px);
+                }
+                
+                /* 添加开关状态文字 */
+                #auto-click-toggle:checked + .slider:after {
+                    content: "开";
+                    color: white;
+                    position: absolute;
+                    left: 8px;
+                    bottom: 4px;
+                    font-size: 12px;
+                }
+                
+                #auto-click-toggle:not(:checked) + .slider:after {
+                    content: "关";
+                    color: white;
+                    position: absolute;
+                    right: 6px;
+                    bottom: 4px;
+                    font-size: 12px;
+                }
+            </style>
+            </label>
+        </div>
+        
         <div id="card-data-status">等待程序数据...</div>
         <div id="optimization-controls" style="display: none;">
             <button id="run-optimizer">运行优化</button>
@@ -1220,24 +1305,24 @@
         const rocketElements = document.querySelectorAll('.rocket-image');
         
         if (rocketElements && rocketElements.length > 0) {
-            console.log(`[程序优化器] 发现 ${rocketElements.length} 个火箭图像元素`);
+            console.log(`[Automata助手] 发现 ${rocketElements.length} 个可能是火箭的元素`);
             
             for (const rocket of rocketElements) {
                 try {
                     if (simulateClick(rocket)) {
-                        console.log('[程序优化器] 成功点击火箭图像');
+                        console.log('[Automata助手] 成功点击火箭元素');
                         // 火箭图像点击成功后，延迟2秒再点击确认按钮
                         setTimeout(testConfirmButton, 2000);
                         return; // 只点击第一个找到的火箭图像
                     } else {
-                        console.log('[程序优化器] 点击火箭图像失败');
+                        console.log('[Automata助手] 点击火箭元素失败');
                     }
                 } catch (e) {
-                    console.error(`[程序优化器] 点击火箭图像时出错: ${e.message}`);
+                    console.error(`[Automata助手] 点击火箭元素时出错: ${e.message}`);
                 }
             }
         } else {
-            console.log('[程序优化器] 未找到火箭图像元素');
+            console.log('[Automata助手] 未找到火箭元素');
         }
     }
 
@@ -1290,7 +1375,12 @@
     
     // 监控和点击确认按钮
     function testConfirmButton() {
-        console.log('[程序优化器] 开始测试确认按钮点击...');
+        // 如果禁用了自动点击，不执行
+        if (!autoClickEnabled) {
+            return;
+        }
+        
+        console.log('[Automata助手] 开始测试确认按钮点击...');
         
         // 尝试通过查找图片元素
         const confirmImages = document.querySelectorAll('img[src*="confirm"], img[src*="Confirm"]');
@@ -1418,10 +1508,68 @@
         testRocketImage();
     }
 
+    // 全局变量定义 - 用于自动点击控制
+    let autoClickEnabled = true; // 默认启用自动点击
+    let autoClickIntervalId = null; // 定时器ID
+    
+    // 设置自动点击开关
+    function setupAutoClickToggle() {
+        const toggleCheckbox = document.getElementById('auto-click-toggle');
+        if (toggleCheckbox) {
+            // 初始状态设置
+            toggleCheckbox.checked = autoClickEnabled;
+            
+            // 添加切换事件
+            toggleCheckbox.addEventListener('change', function() {
+                autoClickEnabled = this.checked;
+                console.log(`[Automata助手] 自动点击火箭功能已${autoClickEnabled ? '启用' : '禁用'}`);
+                
+                if (autoClickEnabled) {
+                    // 开启功能 - 立即执行一次并启动定时器
+                    testRocketImage();
+                    startAutoClickInterval();
+                } else {
+                    // 关闭功能 - 清除定时器
+                    stopAutoClickInterval();
+                }
+            });
+        }
+    }
+    
+    // 启动自动点击定时器
+    function startAutoClickInterval() {
+        // 先清除可能存在的定时器
+        stopAutoClickInterval();
+        
+        // 设置新定时器 - 每10秒运行一次
+        autoClickIntervalId = setInterval(() => {
+            if (document.visibilityState !== 'hidden' && autoClickEnabled) {
+                testRocketImage();
+            }
+        }, 10000);
+        console.log('[Automata助手] 自动点击定时器已启动');
+    }
+    
+    // 停止自动点击定时器
+    function stopAutoClickInterval() {
+        if (autoClickIntervalId !== null) {
+            clearInterval(autoClickIntervalId);
+            autoClickIntervalId = null;
+            console.log('[Automata助手] 自动点击定时器已停止');
+        }
+    }
+    
     // 启动定期检查
     setTimeout(scheduleDataCheck, 3000); // 页面加载3秒后开始检查
-    setTimeout(runTest, 3000); // 同时启动火箭点击测试
-    setInterval(runTest, 10000); // 每10秒运行一次测试
+    setTimeout(setupAutoClickToggle, 3000); // 设置自动点击开关
+    
+    // 同时启动自动点击功能(如果开启)
+    setTimeout(() => {
+        if (autoClickEnabled) {
+            testRocketImage(); // 先执行一次
+            startAutoClickInterval(); // 启动定时功能
+        }
+    }, 5000);
 
     // 处理API响应
     function processAPIResponse(response, url) {
