@@ -1,17 +1,17 @@
 {
     "player": {
-        "nonce": 21,
+        "nonce": 34,
         "data": {
-            "level": 2,
-            "exp": 114,
-            "last_check_point": 340508,
-            "energy": 237,
-            "cost_info": 1,
-            "current_cost": 4,
+            "level": 4,
+            "exp": 79,
+            "last_check_point": 386154,
+            "energy": 721,
+            "cost_info": 3,
+            "current_cost": 8,
             "redeem_info": [
-                2,
-                2,
-                3,
+                6,
+                7,
+                5,
                 0,
                 0,
                 0,
@@ -21,7 +21,7 @@
             "last_interest_stamp": 12902082081696,
             "objects": [
                 {
-                    "modifier_info": "1688849860612939",
+                    "modifier_info": "1970324837360882",
                     "cards": [
                         0,
                         1,
@@ -40,7 +40,7 @@
                     ]
                 },
                 {
-                    "modifier_info": "844424930480977",
+                    "modifier_info": "1407374883939550",
                     "cards": [
                         0,
                         1,
@@ -57,17 +57,36 @@
                         0,
                         0
                     ]
+                },
+                {
+                    "modifier_info": "74027918875270141",
+                    "cards": [
+                        1,
+                        2,
+                        2,
+                        2,
+                        2,
+                        2,
+                        2,
+                        2
+                    ],
+                    "attributes": [
+                        0,
+                        0,
+                        0,
+                        0
+                    ]
                 }
             ],
             "local": [
-                755,
-                635,
-                800,
+                1295,
+                1575,
+                400,
                 0,
                 2,
                 0,
                 0,
-                1012
+                28
             ],
             "cards": [
                 {
@@ -230,7 +249,7 @@
         }
     },
     "state": {
-        "bounty_pool": 46240668,
-        "counter": 349047
+        "bounty_pool": 50871548,
+        "counter": 386301
     }
 }

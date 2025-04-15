@@ -3,9 +3,15 @@ import itertools
 import time
 import json
 import os
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 现在可以导入了
+from utils.logger import get_logger
+logger = get_logger("card_generator")
 
 # 从data.json文件中读取卡片数据
-def load_cards_from_json(file_path="data.json"):
+def load_cards_from_json(file_path="data.json"): 
     try:
         if os.path.exists(file_path):
             with open(file_path, 'r') as f:
@@ -175,9 +181,10 @@ def genetic_algorithm(population_size=100, generations=50, mutation_rate=0.1, el
     return best_combination, best_score, best_attributes
 
 # 使用模拟退火算法生成卡片组合
-def simulated_annealing(initial_temp=500, cooling_rate=0.97, iterations=5000, num_runs=100, allow_intermediate_negative=True, max_solutions=5):
+def simulated_annealing(initial_temp=500, cooling_rate=0.97, iterations=5000, num_runs=100, allow_intermediate_negative=True, max_solutions=5, enforce_positive_attrs=True):
     # 使用字典来记录不同的解，以保证多样性
     solutions_dict = {}  # 使用字符串化的组合作为键
+    logger.info(f"开始模拟退火算法: 初始温度={initial_temp}, 冷却率={cooling_rate}, 迭代次数={iterations}, 运行次数={num_runs}")
     
     # 多次运行取最佳结果
     for run in range(num_runs):
@@ -226,6 +233,12 @@ def simulated_annealing(initial_temp=500, cooling_rate=0.97, iterations=5000, nu
             # 评估邻居解
             neighbor_score, neighbor_attrs, neighbor_step_attrs = evaluate_combination(neighbor, allow_intermediate_negative)
             
+            # 如果要求最终属性必须为正，检查最终属性
+            if enforce_positive_attrs and neighbor_score != float('-inf'):
+                # 检查最终属性是否有负数
+                if any(neighbor_attrs < 0):
+                    neighbor_score = float('-inf')  # 将含有负数属性的解标记为无效
+            
             # 如果邻居解更好或满足概率接受条件，则接受新解
             if neighbor_score != float('-inf'):
                 # 计算接受概率 - 温度越高，越容易接受较差的解
@@ -250,8 +263,15 @@ def simulated_annealing(initial_temp=500, cooling_rate=0.97, iterations=5000, nu
             else:
                 no_improvement += 1
             
+            # 检查是否需要降温
+            if i % 100 == 0:  # 每100次迭代降温一次
+                temp *= cooling_rate
+                if temp < 0.1:  # 最低温度限制
+                    temp = 0.1
+            
             # 如果长时间没有改进，考虑重启
             if no_improvement >= max_no_improvement:
+                logger.debug(f"运行 {run+1}/{num_runs}: 无改进重启")
                 # 重新初始化解，但保持一定概率使用当前最佳解
                 if np.random.random() < 0.3:  # 30%概率使用当前最佳解
                     current_solution = best_solution.copy()
@@ -282,12 +302,30 @@ def simulated_annealing(initial_temp=500, cooling_rate=0.97, iterations=5000, nu
         # 将当前运行的最佳解添加到解集中
         solution_key = str(best_solution)
         if best_score > 0 and solution_key not in solutions_dict:
-            solutions_dict[solution_key] = (best_solution, best_score, best_attrs)
-            print(f"第 {run+1} 次运行找到新的解: {best_solution}, 得分: {best_score}")
+            # 如果要求最终属性不包含负数，则检查
+            if enforce_positive_attrs and any(best_attrs < 0):
+                logger.warning(f"第 {run+1} 次运行找到的解包含负数属性，已忽略: {best_solution}, 得分: {best_score}")
+            else:
+                solutions_dict[solution_key] = (best_solution, best_score, best_attrs)
+                logger.info(f"第 {run+1} 次运行找到新的解: {best_solution}, 得分: {best_score}")
     
     # 将解转换为列表并按得分排序
     solutions_list = list(solutions_dict.values())
     solutions_list.sort(key=lambda x: x[1], reverse=True)
+    
+    # 如果强制要求无负数属性，则筛选出所有无负数属性的解
+    if enforce_positive_attrs:
+        positive_solutions = []
+        for sol in solutions_list:
+            if not any(sol[2] < 0):
+                positive_solutions.append(sol)
+        
+        # 如果找到了无负数属性的解，优先使用这些解
+        if positive_solutions:
+            logger.info(f"共找到 {len(positive_solutions)} 个无负数属性的解")
+            solutions_list = positive_solutions
+        else:
+            logger.warning("未找到无负数属性的解，将使用原始解集")
     
     # 只返回指定数量的最佳解
     top_solutions = solutions_list[:max_solutions]
@@ -417,6 +455,7 @@ def print_combination_details(combination, score, attrs, step_attrs=None):
 
 # 主函数
 def main():
+    logger.info("卡片生成器启动...")
     print("卡片生成器启动...")
     print("可用的卡片:")
     for i, card in enumerate(cards):
@@ -469,6 +508,14 @@ def main():
     
     if choice == "3" or choice == "5":
         print("\n运行模拟退火算法...")
+        
+        # 如果是单独运行模拟退火算法，询问是否要求最终属性不包含负数
+        if choice == "3":
+            enforce_positive = input("是否要求最终属性不包含负数? (y/n): ").lower().startswith('y')
+        else:
+            # 如果是对比所有算法，默认允许负数，以便于比较
+            enforce_positive = False
+            
         print("这可能需要一些时间，正在进行多次优化搜索...")
         sa_start = time.time()
         sa_result, sa_score, sa_attrs, sa_all_solutions = simulated_annealing(initial_temp=500, cooling_rate=0.97, iterations=5000, num_runs=50, allow_intermediate_negative=False, max_solutions=5)
