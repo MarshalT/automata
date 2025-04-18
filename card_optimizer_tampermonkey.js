@@ -150,17 +150,17 @@
                 </div>
             </div>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-bottom: 15px; background-color: rgba(18, 119, 219, 0.7); border-radius: 5px; border: 1px solid #3498db;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-bottom: 15px; background-color:  #2c3e50; border-radius: 5px; border: 1px solid #3498db;">
             <div style="font-size: 16px; font-weight: bold;">自动点击火箭</div>
-            <label class="switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
+            <label class="auto-click-switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
                 <input type="checkbox" id="auto-click-toggle" checked>
-                <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color:rgb(160, 36, 23); transition: .4s; border-radius: 34px;"></span>
+                <span class="auto-click-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; transition: .4s; border-radius: 34px;"></span>
             </label>
             
             <!-- 独立样式表，避免嵌套引起的问题 -->
             <style>
                 /* 开关基本样式 */
-                .switch {
+                .auto-click-switch {
                     position: relative;
                     display: inline-block;
                     width: 50px;
@@ -168,71 +168,75 @@
                 }
                 
                 /* 隐藏原始复选框 */
-                .switch input {
+                .auto-click-switch input {
                     opacity: 0;
                     width: 0;
                     height: 0;
                 }
                 
                 /* 滑块基本样式 */
-                .slider {
+                .auto-click-slider {
                     position: absolute;
                     cursor: pointer;
                     top: 0;
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    background-color:rgb(151, 31, 22); /* 默认红色(关闭状态) */
+                    background-color: #e74c3c; /* 红色(关闭状态) */
                     transition: .4s;
                     border-radius: 34px;
+                    box-shadow: inset 0 0 3px rgba(0,0,0,0.3);
                 }
                 
                 /* 开启状态 - 绿色 */
-                #auto-click-toggle:checked + .slider {
-                    background-color: #4CAF50;
+                #auto-click-toggle:checked + .auto-click-slider {
+                    background-color: #2ecc71 !important; /* 绿色(开启状态) 使用!important确保优先级 */
                 }
                 
-                #auto-click-toggle:focus + .slider {
-                    box-shadow: 0 0 1px #4CAF50;
+                .auto-click-switch input:focus + .auto-click-slider {
+                    box-shadow: 0 0 3px #2ecc71;
                 }
+                
                 /* 滑块圆形按钮 */
-                .slider:before {
+                .auto-click-slider:before {
                     position: absolute;
                     content: "";
-                    height: 16px;
-                    width: 16px;
-                    left: 4px;
-                    bottom: 4px;
+                    height: 18px;
+                    width: 18px;
+                    left: 3px;
+                    bottom: 3px;
                     background-color: white;
                     transition: .4s;
                     border-radius: 50%;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
                 }
                 
                 /* 开启状态时滑块位置 */
-                #auto-click-toggle:checked + .slider:before {
+                #auto-click-toggle:checked + .auto-click-slider:before {
                     transform: translateX(26px);
                 }
                 
                 /* 添加开关状态文字 */
-                #auto-click-toggle:checked + .slider:after {
+                #auto-click-toggle:checked + .auto-click-slider:after {
                     content: "开";
                     color: white;
                     position: absolute;
                     left: 8px;
                     bottom: 4px;
                     font-size: 12px;
+                    font-weight: bold;
                 }
                 
-                #auto-click-toggle:not(:checked) + .slider:after {
+                #auto-click-toggle:not(:checked) + .auto-click-slider:after {
                     content: "关";
                     color: white;
                     position: absolute;
                     right: 6px;
                     bottom: 4px;
                     font-size: 12px;
+                    font-weight: bold;
                 }
             </style>
-            </label>
         </div>
         
         <div id="card-data-status">等待程序数据...</div>
@@ -1079,7 +1083,7 @@
                 }
             }
             
-            // 更新显示内容 - 先设置内容防止“获取中...”显示问题
+            // 更新显示内容 - 先设置内容防止"获取中..."显示问题
             priceDisplay.textContent = formattedPrice;
             console.log('已将价格显示更新为:', formattedPrice);
             
