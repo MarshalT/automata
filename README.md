@@ -206,3 +206,15 @@ node test/bscscan_transactions.js
 - 大量交易记录的钱包地址可能需要较长时间处理
 - 该工具使用web抓取，可能受BSCScan网站结构变化影响
 - 建议使用API密钥而非web抓取以获得更稳定的结果
+
+### 获取BSCScan API密钥
+为了提高请求限制并获得更稳定的数据获取体验，建议申请并使用BSCScan API密钥：
+
+1. 访问 [BSCScan官网](https://bscscan.com/)
+2. 注册并登录您的BSCScan账户
+3. 进入 [API Keys](https://bscscan.com/myapikey) 页面
+4. 点击 "Create New API Key" 按钮
+5. 填写应用名称和其他必要信息
+6. 创建完成后，将生成的API密钥复制到配置文件的 `API_KEY` 字段中
+
+注意：免费API密钥有每日请求次数限制，请合理使用。
