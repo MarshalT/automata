@@ -3,3 +3,5 @@ __pycache__
 *.pyc   
 data
 test/config.json
+transaction_report.html
+transactions.json
