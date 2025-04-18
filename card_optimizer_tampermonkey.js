@@ -1646,77 +1646,6 @@
                 addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
             }
         }
-        // 方式2: response.result.cards
-        else if (response && response.result && response.result.cards) {
-            cards = response.result.cards;
-            addDebugInfo(`方式2找到程序数据: ${cards.length}张`);
-        }
-        // 方式3: response.data.cards
-        else if (response && response.data && response.data.cards) {
-            cards = response.data.cards;
-            addDebugInfo(`方式3找到程序数据: ${cards.length}张`);
-        }
-        // 方式4: response.cards
-        else if (response && response.cards) {
-            cards = response.cards;
-            addDebugInfo(`方式4找到程序数据: ${cards.length}张`);
-        }
-        // 方式5: response.programs (特定于automata网站)
-        else if (response && response.programs && Array.isArray(response.programs)) {
-            cards = response.programs;
-            addDebugInfo(`方式5找到程序数据: ${cards.length}个`);
-        }
-        // 方式6: 寻找任何包含程序属性的数组
-        else if (response && typeof response === 'object') {
-            // 递归搜索对象中的程序数据
-            function findCardsInObject(obj, path = '', visitedObjects = new WeakSet()) {
-                // 防止空对象或非对象类型
-                if (!obj || typeof obj !== 'object') return null;
-                
-                // 防止循环引用和无限递归
-                if (visitedObjects.has(obj)) return null;
-                visitedObjects.add(obj);
-                
-                // 限制搜索深度
-                if (path.split('.').length > 10) return null;
-
-                // 检查当前对象是否是程序数组
-                if (Array.isArray(obj) && obj.length > 0 && typeof obj[0] === 'object') {
-                    // 检查是否有常见的程序属性
-                    const firstItem = obj[0];
-                    if (firstItem.attributes || firstItem.duration ||
-                        'id' in firstItem || 'cardId' in firstItem ||
-                        'name' in firstItem || 'title' in firstItem) {
-                        addDebugInfo(`在路径 ${path} 找到可能的程序数组`);
-                        return obj;
-                    }
-                }
-
-                // 递归搜索子对象
-                for (const key in obj) {
-                    // 跳过特定的属性以避免问题
-                    if (key === 'window' || key === 'self' || key === 'parent' || key === 'top' || key === 'frames' || key === 'document') continue;
-                    
-                    try {
-                        if (obj[key] && typeof obj[key] === 'object') {
-                            const result = findCardsInObject(obj[key], `${path}.${key}`, visitedObjects);
-                            if (result) return result;
-                        }
-                    } catch (e) {
-                        // 忽略访问错误
-                        continue;
-                    }
-                }
-
-                return null;
-            }
-
-            cards = findCardsInObject(response);
-            if (cards) {
-                addDebugInfo(`通过递归搜索找到程序数据: ${cards.length}项`);
-            }
-        }
-
         // 如果找到程序数据
         if (cards && cards.length > 0) {
             cardsData = cards;
@@ -1741,23 +1670,7 @@
             const sampleSize = Math.min(3, cardsData.length);
             for (let i = 0; i < sampleSize; i++) {
                 addDebugInfo(`程序${i}示例: ${JSON.stringify(cardsData[i]).substring(0, 100)}...`);
-            }
-
-            // 自动运行优化
-            if (cardsData.length >= 8) { // 确保有足够的程序进行组合
-                addDebugInfo('自动运行优化...');
-                setTimeout(() => {
-                    // 再次检查按钮是否存在，防止DOM变化
-                    const runButton = document.getElementById('run-optimizer-button');
-                    if (runButton) {
-                        runButton.click();
-                        console.log('[程序优化器] 已自动点击优化按钮');
-                    } else {
-                        console.error('[程序优化器] 找不到优化按钮，无法自动运行');
-                        addDebugInfo('找不到优化按钮，无法自动运行');
-                    }
-                }, 1000);
-            }
+            }        
         } else {
             // 如果没有找到程序数据，但响应中有其他有用信息，也显示出来
             addDebugInfo(`未在响应中找到程序数据，响应结构: ${Object.keys(response).join(', ')}`);
