@@ -173,6 +173,28 @@ function analyzeTransactions(transactions) {
   const topIncomingAddresses = getTopAddresses(incomingTx, 'from', 5);
   const topOutgoingAddresses = getTopAddresses(outgoingTx, 'to', 5);
   
+  // 计算时间段统计
+  const currentTime = Math.floor(Date.now() / 1000); // 当前时间的UNIX时间戳(秒)
+  const oneHourAgo = currentTime - 3600; // 1小时前
+  const threeHoursAgo = currentTime - 10800; // 3小时前
+  const oneDayAgo = currentTime - 86400; // 24小时前
+  
+  // 不同时间段的交易统计
+  const timeStats = {
+    oneHour: {
+      incoming: calculateTimeRangeStats(transactions, oneHourAgo, currentTime, true),
+      outgoing: calculateTimeRangeStats(transactions, oneHourAgo, currentTime, false)
+    },
+    threeHours: {
+      incoming: calculateTimeRangeStats(transactions, threeHoursAgo, currentTime, true),
+      outgoing: calculateTimeRangeStats(transactions, threeHoursAgo, currentTime, false)
+    },
+    oneDay: {
+      incoming: calculateTimeRangeStats(transactions, oneDayAgo, currentTime, true),
+      outgoing: calculateTimeRangeStats(transactions, oneDayAgo, currentTime, false)
+    }
+  };
+  
   return {
     totalTransactions: transactions.length,
     firstTransaction: sortedTx[0],
@@ -192,7 +214,35 @@ function analyzeTransactions(transactions) {
     frequentAddressStats: {
       incoming: calculateAddressValueStats(incomingTx, 'from', tokenSymbol),
       outgoing: calculateAddressValueStats(outgoingTx, 'to', tokenSymbol)
+    },
+    // 添加时间段统计
+    timeStats: timeStats
+  };
+}
+
+/**
+ * 计算特定时间范围内的交易统计
+ */
+function calculateTimeRangeStats(transactions, startTime, endTime, isIncoming) {
+  const filteredTx = transactions.filter(tx => {
+    const txTime = parseInt(tx.timestamp);
+    return txTime >= startTime && txTime <= endTime && tx.isIncoming === isIncoming;
+  });
+  
+  let totalValue = 0;
+  
+  filteredTx.forEach(tx => {
+    const value = parseFloat(tx.value.split(' ')[0].replace(/,/g, ''));
+    if (!isNaN(value)) {
+      totalValue += value;
     }
+  });
+  
+  const tokenSymbol = transactions[0]?.value.split(' ')[1] || '';
+  
+  return {
+    count: filteredTx.length,
+    total: `${totalValue.toFixed(4)} ${tokenSymbol}`
   };
 }
 
@@ -308,6 +358,12 @@ function generateHTMLReport(transactions, analysis) {
     .tab.active { background: #3498db; color: white; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    .time-stats { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; }
+    .time-stat-card { background-color: #f0f8ff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; min-width: 200px; margin: 5px; }
+    .time-stat-card h4 { margin-top: 0; color: #3498db; }
+    .time-stat-card .stat-value { font-size: 24px; font-weight: bold; margin: 10px 0; }
+    .time-stat-card .incoming { color: #27ae60; }
+    .time-stat-card .outgoing { color: #e74c3c; }
     @media print {
       .no-print { display: none; }
     }
@@ -342,6 +398,25 @@ function generateHTMLReport(transactions, analysis) {
       </div>
     </div>
     
+    <h2>时间段交易统计</h2>
+    <div class="time-stats">
+      <div class="time-stat-card">
+        <h4>最近1小时</h4>
+        <div>充值: <span class="stat-value incoming">${analysis.timeStats.oneHour.incoming.count}笔</span> (${analysis.timeStats.oneHour.incoming.total})</div>
+        <div>提现: <span class="stat-value outgoing">${analysis.timeStats.oneHour.outgoing.count}笔</span> (${analysis.timeStats.oneHour.outgoing.total})</div>
+      </div>
+      <div class="time-stat-card">
+        <h4>最近3小时</h4>
+        <div>充值: <span class="stat-value incoming">${analysis.timeStats.threeHours.incoming.count}笔</span> (${analysis.timeStats.threeHours.incoming.total})</div>
+        <div>提现: <span class="stat-value outgoing">${analysis.timeStats.threeHours.outgoing.count}笔</span> (${analysis.timeStats.threeHours.outgoing.total})</div>
+      </div>
+      <div class="time-stat-card">
+        <h4>最近24小时</h4>
+        <div>充值: <span class="stat-value incoming">${analysis.timeStats.oneDay.incoming.count}笔</span> (${analysis.timeStats.oneDay.incoming.total})</div>
+        <div>提现: <span class="stat-value outgoing">${analysis.timeStats.oneDay.outgoing.count}笔</span> (${analysis.timeStats.oneDay.outgoing.total})</div>
+      </div>
+    </div>
+    
     <h2>交易时间范围</h2>
     <div class="stats">
       <div class="stat-card">
@@ -354,7 +429,7 @@ function generateHTMLReport(transactions, analysis) {
       </div>
     </div>
     
-    <h2>频繁交互地址</h2>
+    <h2>交易金额排行榜</h2>
     
     <div class="tabs no-print">
       <div class="tab active" id="tab-incoming" data-target="incoming">充值金额排行榜</div>
@@ -366,6 +441,7 @@ function generateHTMLReport(transactions, analysis) {
       <table>
         <thead>
           <tr>
+            <th>排名</th>
             <th>地址</th>
             <th>交易次数</th>
             <th>总充值金额</th>
@@ -375,8 +451,14 @@ function generateHTMLReport(transactions, analysis) {
           </tr>
         </thead>
         <tbody>
-          ${analysis.frequentAddressStats.incoming.slice(0, 10).map(addr => `
+          ${analysis.frequentAddressStats.incoming.slice(0, 10).map((addr, index) => `
             <tr>
+              <td>
+                ${index === 0 ? '<span style="font-size: 20px; color: gold;">🏆</span>' : 
+                  index === 1 ? '<span style="font-size: 20px; color: silver;">🥈</span>' : 
+                  index === 2 ? '<span style="font-size: 20px; color: #cd7f32;">🥉</span>' : 
+                  (index + 1)}
+              </td>
               <td class="address">${addr.address}</td>
               <td>${addr.count}</td>
               <td>${addr.totalValue}</td>
@@ -388,12 +470,12 @@ function generateHTMLReport(transactions, analysis) {
         </tbody>
       </table>
     </div>
-    
     <div id="outgoing" class="tab-content">
       <h3>提现地址统计 (提现金额最多的前10名地址)</h3>
       <table>
         <thead>
           <tr>
+            <th>排名</th>
             <th>地址</th>
             <th>交易次数</th>
             <th>总提现金额</th>
@@ -403,8 +485,14 @@ function generateHTMLReport(transactions, analysis) {
           </tr>
         </thead>
         <tbody>
-          ${analysis.frequentAddressStats.outgoing.slice(0, 10).map(addr => `
+          ${analysis.frequentAddressStats.outgoing.slice(0, 10).map((addr, index) => `
             <tr>
+              <td>
+                ${index === 0 ? '<span style="font-size: 20px; color: gold;">🏆</span>' : 
+                  index === 1 ? '<span style="font-size: 20px; color: silver;">🥈</span>' : 
+                  index === 2 ? '<span style="font-size: 20px; color: #cd7f32;">🥉</span>' : 
+                  (index + 1)}
+              </td>
               <td class="address">${addr.address}</td>
               <td>${addr.count}</td>
               <td>${addr.totalValue}</td>
@@ -416,7 +504,7 @@ function generateHTMLReport(transactions, analysis) {
         </tbody>
       </table>
     </div>
-    
+    <h2>频繁交互地址</h2>
     <div class="stats">
       <div class="stat-card">
         <h3>主要充值来源</h3>
