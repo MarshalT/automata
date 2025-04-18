@@ -2,4 +2,3 @@ __pycache__
 *.log
 *.pyc   
 data
-test/config.json
