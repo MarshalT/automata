@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  自动点击zkwasm-automata平台上的火箭图标和确认按钮
-// @author       Automata团队
+// @author       溶进咖啡的糖  AI助手
 // @match        https://automata.zkplay.app/*
 // @match        https://*.automata.compute.studio/*
 // @match        http://114.119.173.203/*
