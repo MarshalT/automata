@@ -1774,17 +1774,25 @@
                                     console.log(`[程序优化器] 机器人属性: ${robotAttributes}`);
                                     const duration = cards[cardIndex].duration * 5; // 基础时长
                                     const speed = robotAttributes[1]; // 速度参数
+                                    let adjustedDuration = duration; // 默认不使用速度修正
 
-                                    // 计算速度带来的时间减少比例（log₂(speed)%）
-                                    const timeReduction = Math.log2(speed) / 100; // 转换为小数（如 log₂(16)=4 → 4% → 0.04）
-                                    const adjustedDuration = duration * (1 - timeReduction); // 修正后的时长
+                                    // 只有当speed>0时才应用速度公式
+                                    if (speed > 0) {
+                                        // 计算速度带来的时间减少比例（log₂(speed)%）
+                                        const timeReduction = Math.log2(speed) / 100;
+                                        adjustedDuration = duration * (1 - timeReduction); // 修正后的时长
+                                        console.log(`[优化] 速度=${speed}, 时间减少=${(timeReduction * 100).toFixed(2)}%`);
+                                    }
 
-                                    // 正确写法：仅累加时长，不覆盖值
+                                    // 累加时长和记录卡片数据
                                     totalDuration += adjustedDuration;
-                                    cardDurations.push({ index: cardIndex, adjustedDuration });  // 无返回值赋值
+                                    cardDurations.push({
+                                        index: cardIndex,
+                                        adjustedDuration
+                                    });
 
                                     console.log(`[优化] 卡片${i + 1}(${cardIndex})时长=${adjustedDuration.toFixed(2)}s`);
-                                    console.log(`totalDuration=${totalDuration.toFixed(2)}s`);  // 现在会输出真实总时长
+                                    console.log(`totalDuration=${totalDuration.toFixed(2)}s`);
 
 
                                     // 累积卡片属性
