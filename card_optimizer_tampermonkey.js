@@ -1597,87 +1597,283 @@
         // 提取并显示bounty_pool信息
         if (response && response.state && response.state.bounty_pool) {
             const bountyPool = response.state.bounty_pool;
-            try {
-                updateBountyPoolDisplay(bountyPool);
-                console.log(`[程序优化器] 更新奖励池显示: ${bountyPool}`);
-            } catch (e) {
-                console.error(`[程序优化器] 更新奖励池显示失败: ${e.message}`);
-            }
+            updateBountyPoolDisplay(bountyPool);
         }
 
         // 尝试解析嵌套的JSON字符串 - 针对automata网站的特殊响应结构
-        if (response && response.success === true && response.data && typeof response.data === 'string') {
+        if (typeof response === 'object' && response.success === true && typeof response.data === 'string') {
             try {
-                // 尝试解析data字段中的JSON字符串
-                const parsedData = JSON.parse(response.data);
-                console.log(`[程序优化器] 成功解析嵌套的JSON数据`);
-
-                // 提取并显示嵌套数据中的bounty_pool
-                if (parsedData.state && parsedData.state.bounty_pool) {
-                    const bountyPool = parsedData.state.bounty_pool;
-                    updateBountyPoolDisplay(bountyPool);
-                    addDebugInfo(`当前奖励池(嵌套数据): ${bountyPool}`);
-                }
-
-                // 延迟递归处理解析后的数据，确保DOM已准备好
-                setTimeout(() => {
-                    processAPIResponse(parsedData, url + ' (嵌套数据)');
-                }, 500);
-                return;
+                // 嵌套的JSON数据
+                const nestedData = JSON.parse(response.data);
+                console.log('[程序优化器] 成功解析嵌套的JSON数据');
+                
+                // 递归处理解析后的JSON数据
+                processAPIResponse(nestedData, url + " (嵌套数据)");
             } catch (e) {
-                console.error(`[程序优化器] 解析嵌套JSON失败: ${e.message}`);
-                addDebugInfo(`解析嵌套JSON失败: ${e.message}`);
+                console.error('[程序优化器] 解析嵌套JSON数据失败:', e);
             }
+            return; // 避免重复处理
         }
 
-        // 尝试多种可能的数据结构
-        let cards = null;
-
-        // 方式1: response.player.data.cards (automata特定结构)
-        if (response && response.player && response.player.data && response.player.data.cards && Array.isArray(response.player.data.cards)) {
-            cards = response.player.data.cards;
-            addDebugInfo(`方式1找到程序数据: ${cards.length}张`);
+        // 解析objects数组和cards数组 - 检查不同的数据路径
+        let objectsData = [];
+        let playerData = null;
+        let cardsFound = false; // 标记是否找到cards数据
+        
+        // 路径1: 直接在顶层
+        if (response && response.objects && Array.isArray(response.objects) && 
+            response.cards && Array.isArray(response.cards)) {
+            console.log('[程序优化器] 在顶层找到objects和cards数组');
+            objectsData = processObjectsAndCards(response.objects, response.cards);
+            cardsFound = true;
+            cardsData = response.cards; // 保存cards数据供优化器使用
+        } 
+        // 路径2: 在player.data路径下 (根据提供的完整数据结构)
+        else if (response && response.player && response.player.data) {
+            playerData = response.player.data;
             
-            // 保存完整响应以便后续使用
-            window.fullApiResponse = response;
-            
-            // 提取local数组
-            if (response.player.data.local && Array.isArray(response.player.data.local)) {
-                window.localAttributes = [...response.player.data.local];
-                // 确保有8个属性
-                while (window.localAttributes.length < 8) window.localAttributes.push(0);
-                console.log(`[程序优化器] 提取到local数组:`, window.localAttributes);
-                addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
+            // 尝试从player.data提取cards数据(用于优化器)
+            if (playerData.cards && Array.isArray(playerData.cards)) {
+                cardsData = playerData.cards;
+                cardsFound = true;
+                
+                // 保存完整响应以便后续使用
+                window.fullApiResponse = response;
+                
+                // 提取local数组
+                if (playerData.local && Array.isArray(playerData.local)) {
+                    window.localAttributes = [...playerData.local];
+                    // 确保有8个属性
+                    while (window.localAttributes.length < 8) window.localAttributes.push(0);
+                    console.log(`[程序优化器] 提取到local数组:`, window.localAttributes);
+                    addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
+                }
+                
+                // 更新数据状态显示
+                if (dataStatusElement) {
+                    dataStatusElement.innerHTML = `<div style="color:#4CAF50;font-weight:bold;">已获取 ${cardsData.length} 张程序数据</div>`;
+                }
+                
+                // 显示控制区域
+                const optimizationControls = document.getElementById('optimization-controls');
+                if (optimizationControls) {
+                    optimizationControls.style.display = 'block';
+                }
+                
+                const manualDataControls = document.getElementById('manual-data-controls');
+                if (manualDataControls) {
+                    manualDataControls.style.display = 'none'; // 隐藏手动控制区
+                }
+                
+                // 显示前3张程序的数据示例
+                const sampleSize = Math.min(3, cardsData.length);
+                for (let i = 0; i < sampleSize; i++) {
+                    addDebugInfo(`程序${i}示例: ${JSON.stringify(cardsData[i]).substring(0, 100)}...`);
+                }
             }
-        }
-        // 如果找到程序数据
-        if (cards && cards.length > 0) {
-            cardsData = cards;
             
-            // 确保 DOM 元素存在再操作
-            if (dataStatus) {
-                dataStatus.innerHTML = `<div style="color:#4CAF50;font-weight:bold;">已获取 ${cardsData.length} 张程序数据</div>`;
+            // 同时也尝试提取objects数组和cards数组进行时长分析
+            if (playerData.objects && Array.isArray(playerData.objects) && 
+                playerData.cards && Array.isArray(playerData.cards)) {
+                console.log('[程序优化器] 在player.data路径下找到objects和cards数组');
+                objectsData = processObjectsAndCards(playerData.objects, playerData.cards);
             } else {
-                console.log('[程序优化器] dataStatus 元素不存在');
+                console.log('[程序优化器] player.data存在但未找到有效的objects和cards数组');
             }
-            
-            // 确保 DOM 元素存在再操作
-            if (optimizationControls) {
-                optimizationControls.style.display = 'block';
-            }
-            
-            if (manualDataControls) {
-                manualDataControls.style.display = 'none'; // 隐藏手动控制区
-            }
-
-            // 显示前3张程序的数据示例
-            const sampleSize = Math.min(3, cardsData.length);
-            for (let i = 0; i < sampleSize; i++) {
-                addDebugInfo(`程序${i}示例: ${JSON.stringify(cardsData[i]).substring(0, 100)}...`);
-            }        
         } else {
-            // 如果没有找到程序数据，但响应中有其他有用信息，也显示出来
+            console.log('[程序优化器] 响应中未找到有效的objects和cards数组', response);
+            
+            // 尝试多种可能的数据结构以获取cards
+            // 方式1: response.player.data.cards (automata特定结构)
+            if (response && response.player && response.player.data && 
+                response.player.data.cards && Array.isArray(response.player.data.cards)) {
+                cardsData = response.player.data.cards;
+                cardsFound = true;
+                addDebugInfo(`方式1找到程序数据: ${cardsData.length}张`);
+                
+                // 保存完整响应以便后续使用
+                window.fullApiResponse = response;
+                
+                // 提取local数组
+                if (response.player.data.local && Array.isArray(response.player.data.local)) {
+                    window.localAttributes = [...response.player.data.local];
+                    // 确保有8个属性
+                    while (window.localAttributes.length < 8) window.localAttributes.push(0);
+                    console.log(`[程序优化器] 提取到local数组:`, window.localAttributes);
+                    addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
+                }
+                
+                // 更新数据状态显示
+                if (dataStatusElement) {
+                    dataStatusElement.innerHTML = `<div style="color:#4CAF50;font-weight:bold;">已获取 ${cardsData.length} 张程序数据</div>`;
+                }
+                
+                // 显示控制区域
+                const optimizationControls = document.getElementById('optimization-controls');
+                if (optimizationControls) {
+                    optimizationControls.style.display = 'block';
+                }
+                
+                const manualDataControls = document.getElementById('manual-data-controls');
+                if (manualDataControls) {
+                    manualDataControls.style.display = 'none'; // 隐藏手动控制区
+                }
+                
+                // 显示前3张程序的数据示例
+                const sampleSize = Math.min(3, cardsData.length);
+                for (let i = 0; i < sampleSize; i++) {
+                    addDebugInfo(`程序${i}示例: ${JSON.stringify(cardsData[i]).substring(0, 100)}...`);
+                }
+            }
+        }
+        
+        // 如果没有找到任何数据，显示提示信息
+        if (!cardsFound && dataStatusElement) {
+            dataStatusElement.innerHTML = `<div style="color:#e74c3c;">未能从响应中提取程序数据</div>`;
             addDebugInfo(`未在响应中找到程序数据，响应结构: ${Object.keys(response).join(', ')}`);
+        }
+        
+        // 显示处理后的对象数据(只有在找到数据时才替换data-status区域的内容)
+        if (objectsData && objectsData.length > 0) {
+            displayObjectsData(objectsData, dataStatusElement);
+        }
+    }
+    
+    /**
+     * 处理objects和cards数组，计算时长
+     */
+    function processObjectsAndCards(objects, cards) {
+        console.log('[程序优化器] 开始处理objects和cards数组', {
+            objectsLength: objects.length,
+            cardsLength: cards.length
+        });
+        
+        const objectsData = [];
+        
+        // 计算每个对象组合的总时长
+        try {
+            objects.forEach((obj, index) => {
+                try {
+                    if (obj.cards && Array.isArray(obj.cards)) {
+                        let totalDuration = 0;
+                        const cardDurations = [];
+                        
+                        // 获取每张卡的时长并计算总时长
+                        obj.cards.forEach((cardIndex, i) => {
+                            try {
+                                if (typeof cardIndex === 'number' && 
+                                    cards[cardIndex] && 
+                                    typeof cards[cardIndex].duration === 'number') {
+                                    const duration = cards[cardIndex].duration * 5; // 实际秒数 = duration * 5
+                                    totalDuration += duration;
+                                    cardDurations.push({ index: cardIndex, duration });
+                                } else {
+                                    console.warn(`[程序优化器] 无效的卡片索引或缺少duration属性: ${cardIndex}`);
+                                }
+                            } catch (cardErr) {
+                                console.error(`[程序优化器] 处理卡片时出错: ${cardErr.message}`);
+                            }
+                        });
+                        
+                        // 存储解析结果
+                        objectsData.push({
+                            index,
+                            modifier_info: obj.modifier_info,
+                            totalDuration,
+                            formattedDuration: formatDuration(totalDuration),
+                            cardDurations,
+                            attributes: obj.attributes
+                        });
+                    } else {
+                        console.warn(`[程序优化器] 对象 #${index} 缺少有效的cards数组`);
+                    }
+                } catch (objErr) {
+                    console.error(`[程序优化器] 处理对象 #${index} 时出错: ${objErr.message}`);
+                }
+            });
+            
+            console.log('[程序优化器] 解析完成，共解析 ' + objectsData.length + ' 个对象');
+            
+            // 对解析结果按总时长排序
+            objectsData.sort((a, b) => a.totalDuration - b.totalDuration);
+            
+        } catch (error) {
+            console.error(`[程序优化器] 解析对象时出错: ${error.message}`, error);
+        }
+        
+        return objectsData;
+    }
+    
+    /**
+     * 在界面上显示对象数据
+     */
+    function displayObjectsData(objectsData, targetElement) {
+        try {
+            // 如果提供了目标元素，使用目标元素显示
+            if (targetElement) {
+                // 首先显示已获取的程序卡数据信息
+                let cardsCountText = cardsData && cardsData.length > 0 ? 
+                    `<div style="color:#4CAF50; font-weight:bold; margin-bottom: 10px;">已获取 ${cardsData.length} 张程序数据</div>` : '';
+                
+                // 生成显示内容HTML
+                let htmlContent = `
+                ${cardsCountText}
+                <div style="font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #27ae60;">${objectsData.length} 个机器人</div>`;
+                
+                if (objectsData.length === 0) {
+                    htmlContent += '<div style="margin-top: 10px; color: #e74c3c;">未找到有效的机器人数据</div>';
+                } else {
+                    objectsData.forEach((data, index) => {
+                        try {
+                            const attributesText = data.attributes ? `[${data.attributes.join(', ')}]` : '';
+                            // 为时长设置不同的颜色
+                            let durationColor;
+                            if (data.totalDuration < 600) { // 10分钟以内
+                                durationColor = '#27ae60'; // 绿色
+                            } else if (data.totalDuration < 1800) { // 30分钟以内
+                                durationColor = '#3498db'; // 蓝色
+                            } else if (data.totalDuration < 3600) { // 1小时以内
+                                durationColor = '#f39c12'; // 黄色/橙色
+                            } else {
+                                durationColor = '#e74c3c'; // 红色
+                            }
+                            
+                            htmlContent += `
+                            <div style="margin: 10px 0; padding: 12px; background: rgba(52, 73, 94, 0.1); border-radius: 8px; border-left: 4px solid #3498db;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-weight: bold; font-size: 15px; color: #34495e;">机器人 #${index + 1}</span>
+                                    <span style="color: ${durationColor}; font-weight: bold;">
+                                        总时长: ${data.formattedDuration}
+                                    </span>
+                                </div>
+                                <div style="margin-top: 5px; font-size: 13px; color: #7f8c8d;">
+                                    <span>属性: ${attributesText}</span>
+                                </div>
+                            </div>`;
+                        } catch (itemErr) {
+                            console.error(`[程序优化器] 生成项目 #${index} 的HTML时出错: ${itemErr.message}`);
+                        }
+                    });
+                }
+                
+                // 显示初始状态信息（如果有）
+                if (window.localAttributes && Array.isArray(window.localAttributes) && window.localAttributes.length > 0) {
+                    const localAttrs = window.localAttributes.map(val => `+${val}`).join(', ');
+                    htmlContent += `<div style="margin-top: 15px; font-size: 14px; color: #34495e;">初始状态(local): ${localAttrs}</div>`;
+                }
+                
+                // 更新显示内容
+                targetElement.innerHTML = htmlContent;
+                
+                console.log('[程序优化器] 已将机器人时长分析显示在数据状态区域');
+                return;
+            }
+            
+            // 以下是原有的创建独立显示区域的逻辑，在上面的逻辑执行后不会运行到这里
+            // 保留作为后备方案
+            // ... existing code for creating a separate display element ...
+        } catch (error) {
+            console.error(`[程序优化器] 显示对象数据时出错: ${error.message}`, error);
         }
     }
 
@@ -2245,6 +2441,24 @@
                 bountyPoolElement.style.color = '#3498db'; // 蓝色
             }
         }
+    }
+
+    // 格式化持续时间函数
+    function formatDuration(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = seconds % 60;
+        
+        let result = '';
+        if (hours > 0) {
+            result += `${hours}小时`;
+        }
+        if (minutes > 0 || hours > 0) {
+            result += `${minutes}分钟`;
+        }
+        result += `${remainingSeconds}秒`;
+        
+        return result;
     }
 
 })();
