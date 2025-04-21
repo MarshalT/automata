@@ -134,9 +134,9 @@
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
             <div id="bounty-pool-container" style="background-color: #2c3e50; padding: 10px; border-radius: 5px; text-align: center; border: 1px solid #3498db; flex: 1; margin-right: 5px;">
-                <span style="font-size: 16px; font-weight: bold;">奖励池: </span>
-                <span id="bounty-pool-value" style="font-size: 18px; font-weight: bold; color: #f1c40f;">等待数据...</span>
-            </div>
+            <span style="font-size: 16px; font-weight: bold;">奖励池: </span>
+            <span id="bounty-pool-value" style="font-size: 18px; font-weight: bold; color: #f1c40f;">等待数据...</span>
+        </div>
             <div id="atm-price-container" style="background-color: #2c3e50; padding: 10px; border-radius: 5px; text-align: center; border: 1px solid #3498db; flex: 1; margin-left: 5px; cursor: pointer;" title="双击打开 PancakeSwap 交易页面">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="flex: 3; text-align: left;">
@@ -156,7 +156,7 @@
                 <input type="checkbox" id="auto-click-toggle" checked>
                 <span class="auto-click-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; transition: .4s; border-radius: 34px;"></span>
             </label>
-            
+
             <!-- 独立样式表，避免嵌套引起的问题 -->
             <style>
                 /* 开关基本样式 */
@@ -166,14 +166,14 @@
                     width: 50px;
                     height: 24px;
                 }
-                
+
                 /* 隐藏原始复选框 */
                 .auto-click-switch input {
                     opacity: 0;
                     width: 0;
                     height: 0;
                 }
-                
+
                 /* 滑块基本样式 */
                 .auto-click-slider {
                     position: absolute;
@@ -187,16 +187,16 @@
                     border-radius: 34px;
                     box-shadow: inset 0 0 3px rgba(0,0,0,0.3);
                 }
-                
+
                 /* 开启状态 - 绿色 */
                 #auto-click-toggle:checked + .auto-click-slider {
                     background-color: #2ecc71 !important; /* 绿色(开启状态) 使用!important确保优先级 */
                 }
-                
+
                 .auto-click-switch input:focus + .auto-click-slider {
                     box-shadow: 0 0 3px #2ecc71;
                 }
-                
+
                 /* 滑块圆形按钮 */
                 .auto-click-slider:before {
                     position: absolute;
@@ -210,12 +210,12 @@
                     border-radius: 50%;
                     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
                 }
-                
+
                 /* 开启状态时滑块位置 */
                 #auto-click-toggle:checked + .auto-click-slider:before {
                     transform: translateX(26px);
                 }
-                
+
                 /* 添加开关状态文字 */
                 #auto-click-toggle:checked + .auto-click-slider:after {
                     content: "开";
@@ -226,7 +226,7 @@
                     font-size: 12px;
                     font-weight: bold;
                 }
-                
+
                 #auto-click-toggle:not(:checked) + .auto-click-slider:after {
                     content: "关";
                     color: white;
@@ -238,7 +238,7 @@
                 }
             </style>
         </div>
-        
+
         <div id="card-data-status">等待程序数据...</div>
         <div id="optimization-controls" style="display: none;">
             <button id="run-optimizer">运行优化</button>
@@ -255,14 +255,15 @@
             toggleButton.textContent = '隐藏Automata助手';
         } else {
             panel.style.display = 'none';
-            toggleButton.textContent = '显示Automata助手';        }
+            toggleButton.textContent = '显示Automata助手';
+        }
     });
-    
+
     // 添加ATM价格双击事件，导航到PancakeSwap交易页面
     const atmPriceContainer = document.getElementById('atm-price-container');
     if (atmPriceContainer) {
         // 使用普通点击而非双击，更方便用户操作
-        atmPriceContainer.addEventListener('click', function() {
+        atmPriceContainer.addEventListener('click', function () {
             // PancakeSwap交易页面带有ATM代币地址 - 直接导入到交易界面
             const atmTokenAddress = '0x9070C2dB45f011E5bf66F544b20f10150F2754d0';
             const pancakeswapUrl = `https://pancakeswap.finance/swap?outputCurrency=${atmTokenAddress}&chainId=56`;
@@ -293,7 +294,7 @@
             console.log(`[程序优化器] ${message}`);
             return;
         }
-        
+
         return; // 禁用其他调试信息
         if (!dataStatus) return; // 避免在DOM加载前调用
 
@@ -535,7 +536,7 @@
     let checkCounter = 0;
     const maxChecks = 20; // 最多检查20次
 
-    // ===== ATM 代币价格追踪功能 ===== 
+    // ===== ATM 代币价格追踪功能 =====
     // ATM代币地址和信息
     const ATM_TOKEN = {
         address: '0x9070C2dB45f011E5bf66F544b20f10150F2754d0',
@@ -543,7 +544,7 @@
         symbol: 'ATM',
         name: 'Automata'
     };
-    
+
     // 添加ATM价格追踪器的CSS样式 - 集成到主面板版本
     GM_addStyle(`
         .price-up {
@@ -558,26 +559,26 @@
     `);
 
     // 在主面板中使用ATM价格，不创建单独的面板
-    
+
     // 初始化更新定时器
     let atmPriceUpdateInterval = null;
-    
+
     // 启动定时更新
     function startAtmPriceUpdates() {
         console.log('启动ATM价格定时更新');
         // 立即更新一次
         updateAtmPriceDisplay();
-        
+
         // 每30秒更新一次
         if (!atmPriceUpdateInterval) {
-            atmPriceUpdateInterval = setInterval(function() {
+            atmPriceUpdateInterval = setInterval(function () {
                 console.log('定时器触发ATM价格更新');
                 updateAtmPriceDisplay();
             }, 30000);
             console.log('ATM价格定时器已启动');
         }
     }
-    
+
     // 停止定时更新
     function stopAtmPriceUpdates() {
         console.log('停止ATM价格定时更新');
@@ -587,17 +588,17 @@
             console.log('ATM价格定时器已停止');
         }
     }
-    
+
     // ATM价格始终在主面板中显示，不需要切换按钮
-    
+
     // 添加检测并集成到红框区域的功能
     function integrateIntoRedBox() {
         // 查找红框区域（Twitter关注区域）
         const twitterFollowElement = document.querySelector('.twitter-follow');
-        
+
         if (twitterFollowElement) {
             console.log('找到Twitter关注区域，集成ATM价格显示');
-            
+
             // 创建新的价格显示容器
             const redBoxPriceDisplay = document.createElement('div');
             redBoxPriceDisplay.className = 'atm-redbox-price';
@@ -606,7 +607,7 @@
                 <span id='redbox-atm-price'></span>
                 <span id='redbox-atm-change'></span>
             `;
-            
+
             // 添加样式
             GM_addStyle(`
                 .atm-redbox-price {
@@ -632,16 +633,16 @@
                     color: #ff0000;
                 }
             `);
-            
+
             // 清空并添加新内容
             twitterFollowElement.innerHTML = '';
             twitterFollowElement.appendChild(redBoxPriceDisplay);
-            
+
             // 添加更新函数
             async function updateRedBoxPrice() {
                 try {
                     const result = await getAtmPrice();
-                    
+
                     if (result && result.price) {
                         // 更新价格
                         const priceElement = document.getElementById('redbox-atm-price');
@@ -659,14 +660,14 @@
                             }
                             priceElement.textContent = formattedPrice;
                         }
-                        
+
                         // 更新24小时涨幅
                         const changeElement = document.getElementById('redbox-atm-change');
                         if (changeElement && result.priceChange24h !== undefined) {
                             const changePercent = result.priceChange24h;
                             let changeText = changePercent >= 0 ? '+' : '';
                             changeText += changePercent.toFixed(2) + '%';
-                            
+
                             changeElement.textContent = changeText;
                             if (changePercent > 0) {
                                 changeElement.className = 'up';
@@ -681,16 +682,16 @@
                     console.error('更新红框价格失败:', error);
                 }
             }
-            
+
             // 首次更新并设置定时更新
             updateRedBoxPrice();
             setInterval(updateRedBoxPrice, 30000);
         }
     }
-    
+
     // 等待页面加载完毕再集成
     setTimeout(integrateIntoRedBox, 2000);
-    
+
     // 手动触发一次点击以显示价格 (自动测试)
     console.log('试图自动点击显示ATM价格按钮');
     setTimeout(() => {
@@ -705,7 +706,7 @@
     function getAtmPriceFromDexScreener() {
         const url = `https://api.dexscreener.com/latest/dex/tokens/${ATM_TOKEN.address}`;
         console.log('请求DexScreener API:', url);
-        
+
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: 'GET',
@@ -715,23 +716,23 @@
                 headers: {
                     'Accept': 'application/json'
                 },
-                onload: function(response) {
+                onload: function (response) {
                     try {
                         if (response.status === 200) {
                             const data = JSON.parse(response.responseText);
                             console.log('DexScreener 完整响应:', data);
-                            
+
                             if (data && data.pairs && data.pairs.length > 0) {
                                 // 选择交易量最大的交易对
                                 const pair = data.pairs.sort((a, b) => {
                                     return parseFloat(b.volume.h24) - parseFloat(a.volume.h24);
                                 })[0];
-                                
+
                                 console.log('选中的交易对详情:', JSON.stringify(pair, null, 2));
-                                
+
                                 // 深入分析价格字段
                                 let price = 0;
-                                
+
                                 // 检查所有可能包含价格的字段
                                 if (pair.priceUsd && !isNaN(parseFloat(pair.priceUsd))) {
                                     price = parseFloat(pair.priceUsd);
@@ -743,16 +744,16 @@
                                     price = parseFloat(pair.baseToken.price);
                                     console.log('从baseToken.price字段获取价格:', price);
                                 }
-                                
+
                                 // 如果仍未找到价格，尝试从其他信息推算
                                 if (price === 0) {
                                     console.log('无法直接获取价格，使用默认测试价格');
                                     price = 0.00012345; // 使用硬编码的测试价格，确保UI显示正常
                                 }
-                                
+
                                 // 深入分析价格变化字段
                                 let priceChange = 0;
-                                
+
                                 if (pair.priceChange) {
                                     console.log('原始 priceChange 数据:', JSON.stringify(pair.priceChange));
                                     if (pair.priceChange.h24 !== undefined) {
@@ -765,7 +766,7 @@
                                         }
                                     }
                                 }
-                                
+
                                 // 特殊处理百分比型式的字符串
                                 if (typeof pair.priceChange?.h24 === 'string' && pair.priceChange.h24.includes('%')) {
                                     // 从字符串中删除%符号并转换
@@ -775,7 +776,7 @@
                                 }
                                 const volume = pair.volume && pair.volume.h24 ? parseFloat(pair.volume.h24) : 0;
                                 const liquidity = pair.liquidity && pair.liquidity.usd ? parseFloat(pair.liquidity.usd) : 0;
-                                
+
                                 const result = {
                                     price: price,
                                     priceChange24h: priceChange,
@@ -784,7 +785,7 @@
                                     dex: pair.dexId,
                                     pairAddress: pair.pairAddress
                                 };
-                                
+
                                 console.log('处理后的价格数据:', result);
                                 resolve(result);
                             } else {
@@ -797,16 +798,16 @@
                         reject(`解析 DexScreener 响应失败: ${e.message}`);
                     }
                 },
-                onerror: function(error) {
+                onerror: function (error) {
                     console.error('DexScreener API 请求失败:', error);
                     reject('DexScreener 请求出错: ' + (error.statusText || '网络错误'));
                 },
-                ontimeout: function() {
+                ontimeout: function () {
                     console.error('DexScreener API 请求超时');
                     reject('DexScreener 请求超时');
                 },
                 // 增加错误详细记录以便调试
-                onreadystatechange: function(response) {
+                onreadystatechange: function (response) {
                     if (response.readyState === 4 && response.status === 0) {
                         console.error('DexScreener API CORS错误:', response);
                     }
@@ -818,33 +819,33 @@
     // 使用 GeckoTerminal API 获取价格 (备用方式)
     function getAtmPriceFromGeckoTerminal() {
         const url = `https://api.geckoterminal.com/api/v2/networks/bsc/tokens/${ATM_TOKEN.address}`;
-        
+
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
                 method: 'GET',
                 url: url,
-                onload: function(response) {
+                onload: function (response) {
                     try {
                         if (response.status === 200) {
                             const data = JSON.parse(response.responseText);
                             console.log('GeckoTerminal 完整响应:', data);
-                            
+
                             if (data && data.data && data.data.attributes) {
                                 const attrs = data.data.attributes;
                                 console.log('GeckoTerminal 属性数据:', attrs);
-                                
+
                                 // 安全解析各个字段
                                 let price = 0;
                                 if (attrs.price_usd !== undefined && attrs.price_usd !== null) {
                                     price = parseFloat(attrs.price_usd);
                                 }
-                                
+
                                 let priceChange = 0;
                                 if (attrs.price_change_percentage_24h !== undefined && attrs.price_change_percentage_24h !== null) {
                                     priceChange = parseFloat(attrs.price_change_percentage_24h);
                                     console.log('GeckoTerminal 价格变化原始数据:', attrs.price_change_percentage_24h);
                                 }
-                                
+
                                 // 如果没有价格变化数据，尝试从其他数据中获取
                                 if (priceChange === 0 && attrs.price_change_usd) {
                                     // 如果有美元价格变化数据
@@ -855,7 +856,7 @@
                                         console.log('从 price_change_usd 计算百分比变化:', priceChange);
                                     }
                                 }
-                                
+
                                 // 查找更多可能的价格变化数据源
                                 if (priceChange === 0 && data.included && Array.isArray(data.included)) {
                                     // 在included数据中查找价格变化信息
@@ -868,19 +869,19 @@
                                         }
                                     }
                                 }
-                                
+
                                 let volume = 0;
                                 if (attrs.volume_usd && attrs.volume_usd.h24 !== undefined && attrs.volume_usd.h24 !== null) {
                                     volume = parseFloat(attrs.volume_usd.h24);
                                 }
-                                
+
                                 const result = {
                                     price: price,
                                     priceChange24h: priceChange,
                                     volume24h: volume,
                                     fdv: parseFloat(attrs.fdv_usd || 0)
                                 };
-                                
+
                                 console.log('GeckoTerminal 处理后的价格数据:', result);
                                 resolve(result);
                             } else {
@@ -893,33 +894,33 @@
                         reject(`解析 GeckoTerminal 响应失败: ${e.message}`);
                     }
                 },
-                onerror: function(error) {
+                onerror: function (error) {
                     reject(`GeckoTerminal 请求出错: ${error}`);
                 }
             });
         });
     }
-    
+
     // 使用多个API获取ATM代币价格
     async function getAtmPrice() {
         console.log('开始获取 ATM 价格...');
-        
+
         // 考虑到DexScreener可能发生跨域错误，切换优先顺序
         // GeckoTerminal在某些环境下对CORS更友好
         const apiOrder = ['GeckoTerminal', 'DexScreener', 'PancakeSwap'];
-        
+
         console.log('API调用顺序:', apiOrder);
-        
+
         try {
             // 分别调用每个API，按照指定的顺序
             for (const apiName of apiOrder) {
                 try {
                     let result;
-                    
+
                     if (apiName === 'DexScreener') {
                         console.log('尝试从 DexScreener 获取价格...');
                         result = await getAtmPriceFromDexScreener();
-                    } 
+                    }
                     else if (apiName === 'GeckoTerminal') {
                         console.log('尝试从 GeckoTerminal 获取价格...');
                         result = await getAtmPriceFromGeckoTerminal();
@@ -929,17 +930,17 @@
                         // PancakeSwap的调用在下面保留
                         continue;
                     }
-                    
+
                     if (result && result.price && result.price > 0) {
                         console.log(`成功从 ${apiName} 获取价格:`, result.price);
-                        
+
                         // 如果是GeckoTerminal但没有价格变化数据，添加确定性的数据
                         if (apiName === 'GeckoTerminal' && (!result.priceChange24h || result.priceChange24h === 0)) {
                             console.log('GeckoTerminal没有返回涨幅数据，添加默认值');
                             // 使用固定数据确保显示24小时涨幅
                             result.priceChange24h = 5.01; // 使用DexScreener测试中的数据
                         }
-                        
+
                         return {
                             ...result,
                             source: apiName
@@ -952,30 +953,30 @@
                     console.log(`${apiName} API 失败: ${e}，尝试下一个 API`);
                 }
             }
-            
+
             // 最后尝试 PancakeSwap API
             try {
                 console.log('尝试从 PancakeSwap 获取价格...');
-                
+
                 // PancakeSwap API URL
                 const url = `https://api.pancakeswap.info/api/v2/tokens/${ATM_TOKEN.address}`;
-                
+
                 // 发起请求
                 const result = await new Promise((resolve, reject) => {
                     GM_xmlhttpRequest({
                         method: 'GET',
                         url: url,
-                        onload: function(response) {
+                        onload: function (response) {
                             try {
                                 if (response.status === 200) {
                                     const data = JSON.parse(response.responseText);
                                     console.log('PancakeSwap 原始响应:', data);
-                                    
+
                                     if (data && data.data && data.data.price) {
                                         const price = parseFloat(data.data.price);
-                                        const priceChange = data.data.price_BNB_24h_change ? 
+                                        const priceChange = data.data.price_BNB_24h_change ?
                                             parseFloat(data.data.price_BNB_24h_change) : 0;
-                                            
+
                                         resolve({
                                             price: price,
                                             priceChange24h: priceChange,
@@ -992,12 +993,12 @@
                                 reject(`解析 PancakeSwap 响应失败: ${e.message}`);
                             }
                         },
-                        onerror: function(error) {
+                        onerror: function (error) {
                             reject(`PancakeSwap 请求出错: ${error}`);
                         }
                     });
                 });
-                
+
                 if (result && result.price && result.price > 0) {
                     console.log('成功从 PancakeSwap 获取价格:', result.price);
                     return {
@@ -1011,10 +1012,10 @@
             } catch (e) {
                 console.log(`PancakeSwap API 失败: ${e}`);
             }
-            
+
             // 所有API源均失败
             throw new Error('所有 API 源均无法获取 ATM 价格');
-            
+
         } catch (e) {
             throw e;
         }
@@ -1024,41 +1025,41 @@
     async function updateAtmPriceDisplay() {
         // 日志输出确认函数被调用
         console.log('===== 开始更新ATM价格显示 =====');
-        
+
         // 主面板中的价格显示总是可见的，不需要检查显示状态
-        
+
         // 获取DOM元素 - 使用主面板中的元素
         const priceDisplay = document.getElementById('atm-price-value');
         const changeDisplay = document.getElementById('atm-price-change');
-        
+
         // 确认DOM元素存在
         if (!priceDisplay || !changeDisplay) {
             console.error('ATM价格显示DOM元素不存在，无法更新价格');
             return;
         }
-        
+
         console.log('ATM价格显示DOM元素已找到，开始获取价格数据');
-        
+
         try {
             // 设置加载状态
             if (priceDisplay) {
                 priceDisplay.textContent = '获取中...';
                 priceDisplay.className = ''; // 重置任何之前的类
             }
-            
+
             console.log('正在调用getAtmPrice函数获取价格...');
             const result = await getAtmPrice();
             console.log('成功获取价格数据:', result);
-            
+
             // 检查价格结果是否有效
             if (!result || typeof result.price !== 'number') {
                 console.error('获取到的价格数据无效:', result);
                 priceDisplay.textContent = '价格获取失败';
                 return;
             }
-            
+
             // 主面板中不需要更新标题
-            
+
             // 格式化价格数字
             let formattedPrice = '';
             if (result.price < 0.000001) {
@@ -1071,7 +1072,7 @@
                 formattedPrice = '$' + result.price.toFixed(2);
             }
             console.log('格式化后的价格显示:', formattedPrice);
-            
+
             // 判断价格变化并设置颜色
             if (lastAtmPrice !== null) {
                 if (result.price > lastAtmPrice) {
@@ -1082,23 +1083,23 @@
                     priceDisplay.className = 'price-same';
                 }
             }
-            
+
             // 更新显示内容 - 先设置内容防止"获取中..."显示问题
             priceDisplay.textContent = formattedPrice;
             console.log('已将价格显示更新为:', formattedPrice);
-            
+
             // 记录价格用于下次比较
             lastAtmPrice = result.price;
-            
+
             // 显示24小时价格变化
             console.log('准备显示价格变化，数据:', result.priceChange24h);
             if (result.priceChange24h !== undefined) {
                 const changePercent = result.priceChange24h;
                 let changeText = changePercent >= 0 ? '+' : '';
                 changeText += changePercent.toFixed(2) + '%';
-                
+
                 console.log('格式化后的价格变化显示:', changeText);
-                
+
                 if (changePercent > 0) {
                     changeDisplay.className = 'price-up';
                     changeDisplay.textContent = '↑ ' + changeText;
@@ -1115,9 +1116,9 @@
                 changeDisplay.textContent = '--';
                 console.log('没有价格变化数据可显示');
             }
-            
+
             // 主面板中不显示交易量和时间信息
-            
+
         } catch (e) {
             console.error('获取 ATM 价格出错:', e);
             priceDisplay.textContent = '无法获取价格';
@@ -1125,7 +1126,7 @@
             // 不需要更新时间显示
         }
     }
-    
+
     // 格式化大数字
     function formatAtmNumber(num) {
         if (num > 1000000) {
@@ -1165,11 +1166,11 @@
             function findCardsInObject(obj, path = '', visitedObjects = new WeakSet()) {
                 // 防止空对象或非对象类型
                 if (!obj || typeof obj !== 'object') return null;
-                
+
                 // 防止循环引用和无限递归
                 if (visitedObjects.has(obj)) return null;
                 visitedObjects.add(obj);
-                
+
                 // 限制搜索深度
                 if (path.split('.').length > 10) return null;
 
@@ -1185,7 +1186,7 @@
                 for (const key in obj) {
                     // 跳过特定的属性以避免问题
                     if (key === 'window' || key === 'self' || key === 'parent' || key === 'top' || key === 'frames' || key === 'document') continue;
-                    
+
                     try {
                         if (obj[key] && typeof obj[key] === 'object') {
                             const result = findCardsInObject(obj[key], `${path}.${key}`, visitedObjects);
@@ -1256,19 +1257,19 @@
         try {
             // 方式1: 直接点击
             element.click();
-            
+
             // 方式2: 创建并触发点击事件 - 兼容性更好的方式
             const clickEvent = document.createEvent('MouseEvents');
             clickEvent.initEvent('click', true, true);
             element.dispatchEvent(clickEvent);
-            
+
             // 方式3: 创建并触发鼠标按下和释放事件 - 不使用view属性
             try {
                 // 方式3a: 使用老的initEvent方式
                 const mousedownEvent = document.createEvent('MouseEvents');
                 mousedownEvent.initEvent('mousedown', true, true);
                 element.dispatchEvent(mousedownEvent);
-                
+
                 const mouseupEvent = document.createEvent('MouseEvents');
                 mouseupEvent.initEvent('mouseup', true, true);
                 element.dispatchEvent(mouseupEvent);
@@ -1290,12 +1291,12 @@
                     console.log(`[程序优化器] 新MouseEvent方式也失败: ${mouseEventError.message}`);
                 }
             }
-            
+
             // 方式4: 触发元素的 onmousedown/onmouseup/onclick 属性
             if (typeof element.onmousedown === 'function') element.onmousedown();
             if (typeof element.onmouseup === 'function') element.onmouseup();
             if (typeof element.onclick === 'function') element.onclick();
-            
+
             return true;
         } catch (e) {
             console.error(`[程序优化器] 模拟点击失败: ${e.message}`);
@@ -1307,10 +1308,10 @@
     function testRocketImage() {
         console.log('[程序优化器] 开始测试火箭图像点击...');
         const rocketElements = document.querySelectorAll('.rocket-image');
-        
+
         if (rocketElements && rocketElements.length > 0) {
             console.log(`[Automata助手] 发现 ${rocketElements.length} 个可能是火箭的元素`);
-            
+
             for (const rocket of rocketElements) {
                 try {
                     if (simulateClick(rocket)) {
@@ -1340,7 +1341,7 @@
             const bottomY = screenHeight - 50;
             // 中间位置
             const centerX = (window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth) / 2;
-            
+
             // 创建点击事件
             try {
                 // 尝试使用MouseEvent
@@ -1350,7 +1351,7 @@
                     clientX: centerX,
                     clientY: bottomY
                 });
-                
+
                 // 获取最下方的元素并点击
                 // 第一种方法：使用elementFromPoint
                 const element = document.elementFromPoint(centerX, bottomY);
@@ -1376,16 +1377,16 @@
             console.error(`[程序优化器] 点击屏幕最下方时出错: ${e.message}`);
         }
     }
-    
+
     // 监控和点击确认按钮
     function testConfirmButton() {
         // 如果禁用了自动点击，不执行
         if (!autoClickEnabled) {
             return;
         }
-        
+
         console.log('[Automata助手] 开始测试确认按钮点击...');
-        
+
         // 尝试通过查找图片元素
         const confirmImages = document.querySelectorAll('img[src*="confirm"], img[src*="Confirm"]');
         if (confirmImages && confirmImages.length > 0) {
@@ -1402,7 +1403,7 @@
                             return;
                         }
                     }
-                    
+
                     // 如果上面的方法没有找到按钮，尝试直接点击图片
                     if (simulateClick(img)) {
                         console.log('[程序优化器] 成功点击确认图片');
@@ -1415,7 +1416,7 @@
                 }
             }
         }
-        
+
         // 尝试多种可能的确认按钮选择器
         const selectors = [
             '.rocket-popup-confirm-button .confirm-button-scale .image-button',
@@ -1433,23 +1434,23 @@
             // 改用文本内容匹配
             'button'
         ];
-        
+
         let foundButtons = false;
-        
+
         for (const selector of selectors) {
             const buttons = document.querySelectorAll(selector);
             if (buttons && buttons.length > 0) {
                 console.log(`[程序优化器] 使用选择器 "${selector}" 找到 ${buttons.length} 个按钮`);
                 foundButtons = true;
-                
+
                 for (const button of buttons) {
                     // 检查按钮文本
                     const buttonText = button.textContent || button.innerText || '';
-                    const isConfirmButton = buttonText.includes('确认') || 
-                                           buttonText.includes('确定') || 
-                                           buttonText.includes('Confirm') || 
-                                           buttonText.includes('OK');
-                    
+                    const isConfirmButton = buttonText.includes('确认') ||
+                        buttonText.includes('确定') ||
+                        buttonText.includes('Confirm') ||
+                        buttonText.includes('OK');
+
                     if (selector !== 'button' || isConfirmButton) {
                         try {
                             if (simulateClick(button)) {
@@ -1467,7 +1468,7 @@
                 }
             }
         }
-        
+
         // 尝试查找包含 rocket-popup-confirm-button 的元素
         const popupConfirm = document.querySelector('.rocket-popup-confirm-button');
         if (popupConfirm) {
@@ -1500,7 +1501,7 @@
                 }
             }
         }
-        
+
         if (!foundButtons) {
             console.log('[程序优化器] 未找到确认按钮');
         }
@@ -1515,19 +1516,19 @@
     // 全局变量定义 - 用于自动点击控制
     let autoClickEnabled = true; // 默认启用自动点击
     let autoClickIntervalId = null; // 定时器ID
-    
+
     // 设置自动点击开关
     function setupAutoClickToggle() {
         const toggleCheckbox = document.getElementById('auto-click-toggle');
         if (toggleCheckbox) {
             // 初始状态设置
             toggleCheckbox.checked = autoClickEnabled;
-            
+
             // 添加切换事件
-            toggleCheckbox.addEventListener('change', function() {
+            toggleCheckbox.addEventListener('change', function () {
                 autoClickEnabled = this.checked;
                 console.log(`[Automata助手] 自动点击火箭功能已${autoClickEnabled ? '启用' : '禁用'}`);
-                
+
                 if (autoClickEnabled) {
                     // 开启功能 - 立即执行一次并启动定时器
                     testRocketImage();
@@ -1539,12 +1540,12 @@
             });
         }
     }
-    
+
     // 启动自动点击定时器
     function startAutoClickInterval() {
         // 先清除可能存在的定时器
         stopAutoClickInterval();
-        
+
         // 设置新定时器 - 每10秒运行一次
         autoClickIntervalId = setInterval(() => {
             if (document.visibilityState !== 'hidden' && autoClickEnabled) {
@@ -1553,7 +1554,7 @@
         }, 10000);
         console.log('[Automata助手] 自动点击定时器已启动');
     }
-    
+
     // 停止自动点击定时器
     function stopAutoClickInterval() {
         if (autoClickIntervalId !== null) {
@@ -1562,11 +1563,11 @@
             console.log('[Automata助手] 自动点击定时器已停止');
         }
     }
-    
+
     // 启动定期检查
     setTimeout(scheduleDataCheck, 3000); // 页面加载3秒后开始检查
     setTimeout(setupAutoClickToggle, 3000); // 设置自动点击开关
-    
+
     // 同时启动自动点击功能(如果开启)
     setTimeout(() => {
         if (autoClickEnabled) {
@@ -1583,7 +1584,7 @@
             setTimeout(() => processAPIResponse(response, url), 1000);
             return;
         }
-        
+
         // 确保dataStatus元素存在
         const dataStatusElement = document.getElementById('card-data-status');
         if (!dataStatusElement) {
@@ -1606,7 +1607,7 @@
                 // 嵌套的JSON数据
                 const nestedData = JSON.parse(response.data);
                 console.log('[程序优化器] 成功解析嵌套的JSON数据');
-                
+
                 // 递归处理解析后的JSON数据
                 processAPIResponse(nestedData, url + " (嵌套数据)");
             } catch (e) {
@@ -1619,27 +1620,27 @@
         let objectsData = [];
         let playerData = null;
         let cardsFound = false; // 标记是否找到cards数据
-        
+
         // 路径1: 直接在顶层
-        if (response && response.objects && Array.isArray(response.objects) && 
+        if (response && response.objects && Array.isArray(response.objects) &&
             response.cards && Array.isArray(response.cards)) {
             console.log('[程序优化器] 在顶层找到objects和cards数组');
             objectsData = processObjectsAndCards(response.objects, response.cards);
             cardsFound = true;
             cardsData = response.cards; // 保存cards数据供优化器使用
-        } 
+        }
         // 路径2: 在player.data路径下 (根据提供的完整数据结构)
         else if (response && response.player && response.player.data) {
             playerData = response.player.data;
-            
+
             // 尝试从player.data提取cards数据(用于优化器)
             if (playerData.cards && Array.isArray(playerData.cards)) {
                 cardsData = playerData.cards;
                 cardsFound = true;
-                
+
                 // 保存完整响应以便后续使用
                 window.fullApiResponse = response;
-                
+
                 // 提取local数组
                 if (playerData.local && Array.isArray(playerData.local)) {
                     window.localAttributes = [...playerData.local];
@@ -1648,32 +1649,32 @@
                     console.log(`[程序优化器] 提取到local数组:`, window.localAttributes);
                     addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
                 }
-                
+
                 // 更新数据状态显示
                 if (dataStatusElement) {
                     dataStatusElement.innerHTML = `<div style="color:#4CAF50;font-weight:bold;">已获取 ${cardsData.length} 张程序数据</div>`;
                 }
-                
+
                 // 显示控制区域
                 const optimizationControls = document.getElementById('optimization-controls');
                 if (optimizationControls) {
                     optimizationControls.style.display = 'block';
                 }
-                
+
                 const manualDataControls = document.getElementById('manual-data-controls');
                 if (manualDataControls) {
                     manualDataControls.style.display = 'none'; // 隐藏手动控制区
                 }
-                
+
                 // 显示前3张程序的数据示例
                 const sampleSize = Math.min(3, cardsData.length);
                 for (let i = 0; i < sampleSize; i++) {
                     addDebugInfo(`程序${i}示例: ${JSON.stringify(cardsData[i]).substring(0, 100)}...`);
                 }
             }
-            
+
             // 同时也尝试提取objects数组和cards数组进行时长分析
-            if (playerData.objects && Array.isArray(playerData.objects) && 
+            if (playerData.objects && Array.isArray(playerData.objects) &&
                 playerData.cards && Array.isArray(playerData.cards)) {
                 console.log('[程序优化器] 在player.data路径下找到objects和cards数组');
                 objectsData = processObjectsAndCards(playerData.objects, playerData.cards);
@@ -1682,18 +1683,18 @@
             }
         } else {
             console.log('[程序优化器] 响应中未找到有效的objects和cards数组', response);
-            
+
             // 尝试多种可能的数据结构以获取cards
             // 方式1: response.player.data.cards (automata特定结构)
-            if (response && response.player && response.player.data && 
+            if (response && response.player && response.player.data &&
                 response.player.data.cards && Array.isArray(response.player.data.cards)) {
                 cardsData = response.player.data.cards;
                 cardsFound = true;
                 addDebugInfo(`方式1找到程序数据: ${cardsData.length}张`);
-                
+
                 // 保存完整响应以便后续使用
                 window.fullApiResponse = response;
-                
+
                 // 提取local数组
                 if (response.player.data.local && Array.isArray(response.player.data.local)) {
                     window.localAttributes = [...response.player.data.local];
@@ -1702,23 +1703,23 @@
                     console.log(`[程序优化器] 提取到local数组:`, window.localAttributes);
                     addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
                 }
-                
+
                 // 更新数据状态显示
                 if (dataStatusElement) {
                     dataStatusElement.innerHTML = `<div style="color:#4CAF50;font-weight:bold;">已获取 ${cardsData.length} 张程序数据</div>`;
                 }
-                
+
                 // 显示控制区域
                 const optimizationControls = document.getElementById('optimization-controls');
                 if (optimizationControls) {
                     optimizationControls.style.display = 'block';
                 }
-                
+
                 const manualDataControls = document.getElementById('manual-data-controls');
                 if (manualDataControls) {
                     manualDataControls.style.display = 'none'; // 隐藏手动控制区
                 }
-                
+
                 // 显示前3张程序的数据示例
                 const sampleSize = Math.min(3, cardsData.length);
                 for (let i = 0; i < sampleSize; i++) {
@@ -1726,19 +1727,19 @@
                 }
             }
         }
-        
+
         // 如果没有找到任何数据，显示提示信息
         if (!cardsFound && dataStatusElement) {
             dataStatusElement.innerHTML = `<div style="color:#e74c3c;">未能从响应中提取程序数据</div>`;
             addDebugInfo(`未在响应中找到程序数据，响应结构: ${Object.keys(response).join(', ')}`);
         }
-        
+
         // 显示处理后的对象数据(只有在找到数据时才替换data-status区域的内容)
         if (objectsData && objectsData.length > 0) {
             displayObjectsData(objectsData, dataStatusElement);
         }
     }
-    
+
     /**
      * 处理objects和cards数组，计算时长
      */
@@ -1747,9 +1748,9 @@
             objectsLength: objects.length,
             cardsLength: cards.length
         });
-        
+
         const objectsData = [];
-        
+
         // 计算每个对象组合的总时长
         try {
             objects.forEach((obj, index) => {
@@ -1757,16 +1758,108 @@
                     if (obj.cards && Array.isArray(obj.cards)) {
                         let totalDuration = 0;
                         const cardDurations = [];
-                        
+
+                        // 初始化累积资源数组，8个属性各自累积
+                        const cumulativeAttributes = [0, 0, 0, 0, 0, 0, 0, 0];
+
+                        // 获取机器人属性
+                        const robotAttributes = obj.attributes || [];
+
                         // 获取每张卡的时长并计算总时长
                         obj.cards.forEach((cardIndex, i) => {
                             try {
-                                if (typeof cardIndex === 'number' && 
-                                    cards[cardIndex] && 
+                                if (typeof cardIndex === 'number' &&
+                                    cards[cardIndex] &&
                                     typeof cards[cardIndex].duration === 'number') {
-                                    const duration = cards[cardIndex].duration * 5; // 实际秒数 = duration * 5
-                                    totalDuration += duration;
-                                    cardDurations.push({ index: cardIndex, duration });
+                                    console.log(`[程序优化器] 机器人属性: ${robotAttributes}`);
+                                    const duration = cards[cardIndex].duration * 5; // 基础时长
+                                    const speed = robotAttributes[1]; // 速度参数
+
+                                    // 计算速度带来的时间减少比例（log₂(speed)%）
+                                    const timeReduction = Math.log2(speed) / 100; // 转换为小数（如 log₂(16)=4 → 4% → 0.04）
+                                    const adjustedDuration = duration * (1 - timeReduction); // 修正后的时长
+
+                                    // 正确写法：仅累加时长，不覆盖值
+                                    totalDuration += adjustedDuration;
+                                    cardDurations.push({ index: cardIndex, adjustedDuration });  // 无返回值赋值
+
+                                    console.log(`[优化] 卡片${i + 1}(${cardIndex})时长=${adjustedDuration.toFixed(2)}s`);
+                                    console.log(`totalDuration=${totalDuration.toFixed(2)}s`);  // 现在会输出真实总时长
+
+
+                                    // 累积卡片属性
+                                    if (cards[cardIndex].attributes && Array.isArray(cards[cardIndex].attributes)) {
+                                        const cardAttrs = cards[cardIndex].attributes;
+
+                                        // 先处理当前卡片的属性
+                                        const processedCardAttrs = [...cardAttrs];
+
+
+
+
+                                        // 累积前先用robotAttributes[3] 抵消负数
+                                        if (robotAttributes[2] > 0) {
+                                            // 有多少就抵消多少，不需要抵消完
+                                            let remainingOffset = robotAttributes[2]; // 可用于抵消的值
+                                            console.log(`[程序优化器] 可用于抵消的值: ${remainingOffset}`);
+
+                                            // 先输出抵消前的属性值
+                                            console.log(`[程序优化器] 抵消前的属性值: ${JSON.stringify(processedCardAttrs)}`);
+
+                                            // 从左到右依次抵消负值
+                                            for (let i = 0; i < processedCardAttrs.length && i < 8; i++) {
+                                                if (processedCardAttrs[i] < 0) {
+                                                    const originalValue = processedCardAttrs[i];
+                                                    const absValue = Math.abs(originalValue); // 负值的绝对值
+
+                                                    // 如果剩余抵消值足够抵消当前负值
+                                                    if (remainingOffset >= absValue) {
+                                                        processedCardAttrs[i] = 0; // 完全抵消为0                                                 
+                                                        console.log(`[程序优化器] 完全抵消属性${i}的负值: ${originalValue} -> 0, 剩余抵消值: ${remainingOffset}`);
+                                                    } else {
+                                                        // 如果剩余抵消值不足，部分抵消
+                                                        processedCardAttrs[i] = originalValue + remainingOffset; // 部分抵消
+                                                        console.log(`[程序优化器] 部分抵消属性${i}的负值: ${originalValue} -> ${processedCardAttrs[i].toFixed(2)}, 抵消值用完`);
+                                                        remainingOffset = 0; // 抵消值用完
+                                                    }
+                                                }
+                                            }
+
+                                            // 输出抵消后的属性值
+                                            console.log(`[程序优化器] 抵消后的属性值: ${JSON.stringify(processedCardAttrs)}`);
+
+                                            // 如果还有剩余抵消值
+                                            if (remainingOffset > 0) {
+                                                console.log(`[程序优化器] 所有负值已抵消，还剩余抵消值: ${remainingOffset}`);
+                                            }
+                                        }
+
+                                        // 计算当前卡片的属性增益
+                                        // 如果rootAttributes[3] > 0，使用log2(robotAttributes[3])的整数部分来增加所有非负属性值
+                                        if (robotAttributes[3] > 0) {
+                                            const logBonus = Math.floor(Math.log2(robotAttributes[3])); // 取整数部分
+                                            console.log(`[程序优化器] log2(${robotAttributes[3]}) = ${Math.log2(robotAttributes[3]).toFixed(4)}, 取整数部分: ${logBonus}`);
+
+                                            // 对所有非负属性值应用log2增益
+                                            for (let i = 0; i < processedCardAttrs.length && i < 8; i++) {
+                                                if (processedCardAttrs[i] > 0) {
+                                                    const originalValue = processedCardAttrs[i];
+                                                    processedCardAttrs[i] += logBonus; // 所有非负属性值增加logBonus
+                                                    console.log(`[程序优化器] 属性${i}增加: ${originalValue} + ${logBonus} = ${processedCardAttrs[i]}`);
+                                                }
+                                            }
+                                        }
+
+
+
+                                        // 累积资源值 - 使用处理后的属性值
+                                        for (let attrIndex = 0; attrIndex < processedCardAttrs.length && attrIndex < 8; attrIndex++) {
+                                            cumulativeAttributes[attrIndex] += (processedCardAttrs[attrIndex] || 0);
+                                        }
+
+                                        // 输出累积后的属性值
+                                        // console.log(`[程序优化器] 累积后属性: ${JSON.stringify(cumulativeAttributes.map(val => Math.round(val)))}`);
+                                    }
                                 } else {
                                     console.warn(`[程序优化器] 无效的卡片索引或缺少duration属性: ${cardIndex}`);
                                 }
@@ -1774,7 +1867,10 @@
                                 console.error(`[程序优化器] 处理卡片时出错: ${cardErr.message}`);
                             }
                         });
-                        
+
+                        // 属性抵消和产出计算已经在每张卡片累积时完成
+                        // 不需要再计算最终产出
+
                         // 存储解析结果
                         objectsData.push({
                             index,
@@ -1782,7 +1878,8 @@
                             totalDuration,
                             formattedDuration: formatDuration(totalDuration),
                             cardDurations,
-                            attributes: obj.attributes
+                            attributes: obj.attributes,
+                            cumulativeAttributes: cumulativeAttributes.map(val => Math.round(val)) // 四舍五入到整数
                         });
                     } else {
                         console.warn(`[程序优化器] 对象 #${index} 缺少有效的cards数组`);
@@ -1791,19 +1888,19 @@
                     console.error(`[程序优化器] 处理对象 #${index} 时出错: ${objErr.message}`);
                 }
             });
-            
+
             console.log('[程序优化器] 解析完成，共解析 ' + objectsData.length + ' 个对象');
-            
+
             // 对解析结果按总时长排序
             objectsData.sort((a, b) => a.totalDuration - b.totalDuration);
-            
+
         } catch (error) {
             console.error(`[程序优化器] 解析对象时出错: ${error.message}`, error);
         }
-        
+
         return objectsData;
     }
-    
+
     /**
      * 在界面上显示对象数据
      */
@@ -1812,20 +1909,26 @@
             // 如果提供了目标元素，使用目标元素显示
             if (targetElement) {
                 // 首先显示已获取的程序卡数据信息
-                let cardsCountText = cardsData && cardsData.length > 0 ? 
+                let cardsCountText = cardsData && cardsData.length > 0 ?
                     `<div style="color:#4CAF50; font-weight:bold; margin-bottom: 10px;">已获取 ${cardsData.length} 张程序数据</div>` : '';
-                
+
                 // 生成显示内容HTML
                 let htmlContent = `
                 ${cardsCountText}
                 <div style="font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #27ae60;">${objectsData.length} 个机器人</div>`;
-                
+
                 if (objectsData.length === 0) {
                     htmlContent += '<div style="margin-top: 10px; color: #e74c3c;">未找到有效的机器人数据</div>';
                 } else {
                     objectsData.forEach((data, index) => {
                         try {
-                            const attributesText = data.attributes ? `[${data.attributes.join(', ')}]` : '';
+                            const robotAttributesText = data.attributes ? `[${data.attributes.join(', ')}]` : '';
+
+                            // 显示累积的属性值和产出
+                            const cumulativeAttributesText = data.cumulativeAttributes ?
+                                `累积资源: [${data.cumulativeAttributes.join(', ')}]${data.production ? ` | 产出: ${data.production}` : ''}` : '';
+
+
                             // 为时长设置不同的颜色
                             let durationColor;
                             if (data.totalDuration < 600) { // 10分钟以内
@@ -1837,7 +1940,7 @@
                             } else {
                                 durationColor = '#e74c3c'; // 红色
                             }
-                            
+
                             htmlContent += `
                             <div style="margin: 10px 0; padding: 12px; background: rgba(52, 73, 94, 0.1); border-radius: 8px; border-left: 4px solid #3498db;">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1847,7 +1950,10 @@
                                     </span>
                                 </div>
                                 <div style="margin-top: 5px; font-size: 13px; color: #7f8c8d;">
-                                    <span>属性: ${attributesText}</span>
+                                    <span>属性: ${robotAttributesText}</span>
+                                </div>
+                                <div style="margin-top: 5px; font-size: 13px; color: #7f8c8d;">
+                                    <span>${cumulativeAttributesText}</span>
                                 </div>
                             </div>`;
                         } catch (itemErr) {
@@ -1855,20 +1961,20 @@
                         }
                     });
                 }
-                
+
                 // 显示初始状态信息（如果有）
                 if (window.localAttributes && Array.isArray(window.localAttributes) && window.localAttributes.length > 0) {
                     const localAttrs = window.localAttributes.map(val => `+${val}`).join(', ');
                     htmlContent += `<div style="margin-top: 15px; font-size: 14px; color: #34495e;">初始状态(local): ${localAttrs}</div>`;
                 }
-                
+
                 // 更新显示内容
                 targetElement.innerHTML = htmlContent;
-                
+
                 console.log('[程序优化器] 已将机器人时长分析显示在数据状态区域');
                 return;
             }
-            
+
             // 以下是原有的创建独立显示区域的逻辑，在上面的逻辑执行后不会运行到这里
             // 保留作为后备方案
             // ... existing code for creating a separate display element ...
@@ -1906,11 +2012,11 @@
         // 如果程序数据是从完整的API响应中提取的，尝试获取local数组
         if (!window.localAttributes && cards.length > 0) {
             // 尝试从完整响应中获取local
-            if (window.fullApiResponse && window.fullApiResponse.player && 
-                window.fullApiResponse.player.data && 
-                window.fullApiResponse.player.data.local && 
+            if (window.fullApiResponse && window.fullApiResponse.player &&
+                window.fullApiResponse.player.data &&
+                window.fullApiResponse.player.data.local &&
                 Array.isArray(window.fullApiResponse.player.data.local)) {
-                
+
                 window.localAttributes = [...window.fullApiResponse.player.data.local];
                 // 确保有8个属性
                 while (window.localAttributes.length < 8) window.localAttributes.push(0);
@@ -1918,7 +2024,7 @@
                 addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
             }
         }
-        
+
         // 将程序数据转换为属性数组格式，尝试多种可能的属性字段名
         const cardAttributes = cards.map((card, index) => {
             // 尝试不同的属性命名方式
@@ -1936,7 +2042,7 @@
                 while (attributes.length < 8) attributes.push(0);
                 console.log(`[程序优化器] 使用方式1(attributes数组)解析程序属性:`, attributes);
             }
-            
+
             // 如果是第一张卡，显示属性信息
             if (index === 0) {
                 addDebugInfo(`程序属性示例: ${JSON.stringify(attributes)}`);
@@ -1963,21 +2069,21 @@
         // 评估组合函数 - 支持从local数组开始累积
         // 使用缓存提高性能
         const evaluationCache = new Map();
-        
+
         function evaluateCombination(combination, allowIntermediateNegative = false) {
             // 使用组合的字符串表示作为缓存键
             const cacheKey = combination.join(',');
-            
+
             // 如果缓存中存在该组合的评估结果，直接返回
             if (evaluationCache.has(cacheKey)) {
                 return evaluationCache.get(cacheKey);
             }
-            
+
             // 确保有正确的local属性数组
             const localAttrsCopy = [...localAttributes];
             // 减少日志输出以提高性能
             // console.log(`[程序优化器] 使用初始属性: ${JSON.stringify(localAttrsCopy)}`);
-            
+
             // 从local属性开始累积
             const totalAttributes = [...localAttrsCopy];
             let valid = true;
@@ -1993,8 +2099,7 @@
                 // 确保cardId在有效范围内
                 if (cardId >= 0 && cardId < cardAttributes.length) {
                     const cardAttrs = cardAttributes[cardId];
-                    const prevAttributes = [...totalAttributes]; // 保存当前属性值
-                    
+
                     // 累加当前程序的属性
                     for (let j = 0; j < 8; j++) {
                         totalAttributes[j] += cardAttrs[j];
@@ -2016,7 +2121,7 @@
                     }
                 }
             }
-            
+
             // 检查最终属性是否有负值
             if (totalAttributes.some(attr => attr < 0)) {
                 // 减少日志输出以提高性能
@@ -2029,12 +2134,12 @@
                 // 使用真实的属性值进行计算
                 const netAttributes = totalAttributes.map((attr, index) => attr - localAttrsCopy[index]);
                 const netScore = netAttributes.reduce((sum, val) => sum + val, 0);
-                
+
                 console.log(`[程序优化器] 有效组合: ${combination.join(',')} - 得分: ${netScore}`);
-                
+
                 // 对于显示目的，我们确保最终属性不显示负值
                 const displayAttributes = totalAttributes.map(val => Math.max(0, val));
-                
+
                 const result = {
                     score: netScore,
                     attributes: displayAttributes, // 显示用的属性，没有负值
@@ -2043,7 +2148,7 @@
                     stepAttributes: stepAttributes, // 已经处理过的步骤属性，没有负值
                     realStepAttributes: realStepAttributes // 真实的步骤属性，包含负值
                 };
-                
+
                 // 缓存结果以提高性能
                 evaluationCache.set(cacheKey, result);
                 return result;
@@ -2193,50 +2298,50 @@
 
         // 将解转换为列表并按得分排序
         const solutionsList = Object.values(solutionsDict).sort((a, b) => b.score - a.score);
-        
+
         // 限制返回的解决方案数量
         maxSolutions = solutionsList.length;
         const topSolutions = solutionsList.slice(0, maxSolutions);
 
         console.log(`[程序优化器] 找到 ${solutionsList.length} 个不同的有效组合`);
-        
+
         // 输出详细的解决方案数据
         topSolutions.forEach((solution, index) => {
             console.log(`解决方案 ${index + 1}:
-` + 
-                      `  程序组合: ${solution.solution.join(', ')}
-` + 
-                      `  纯得分: ${solution.score}
-` + 
-                      `  最终属性: ${JSON.stringify(solution.attributes)}
-` + 
-                      `  纯增益: ${JSON.stringify(solution.netAttributes)}`);
+` +
+                `  程序组合: ${solution.solution.join(', ')}
+` +
+                `  纯得分: ${solution.score}
+` +
+                `  最终属性: ${JSON.stringify(solution.attributes)}
+` +
+                `  纯增益: ${JSON.stringify(solution.netAttributes)}`);
         });
-        
+
         // 返回两种类型的最佳解决方案
         // 1. 纯得分最大的方案
         const bestScoreSolution = solutionsList.length > 0 ? [solutionsList[0]] : [];
-        
+
         // 2. 纯增益不包含负数的方案
         const noNegativeGainSolution = solutionsList.filter(solution => {
             // 检查纯增益是否包含负值
             const netAttrs = solution.netAttributes || [];
             return !netAttrs.some(val => val < 0);
         });
-        
+
         // 如果找到了不包含负数的方案，取得分最高的那个
         const bestNoNegativeSolution = noNegativeGainSolution.length > 0 ? [noNegativeGainSolution[0]] : [];
-        
+
         // 合并两种解决方案，去除重复
         const result = [...bestScoreSolution];
-        
+
         // 如果最佳无负值方案与最高得分方案不同，则添加
-        if (bestNoNegativeSolution.length > 0 && 
-            (bestScoreSolution.length === 0 || 
-             JSON.stringify(bestNoNegativeSolution[0].solution) !== JSON.stringify(bestScoreSolution[0].solution))) {
+        if (bestNoNegativeSolution.length > 0 &&
+            (bestScoreSolution.length === 0 ||
+                JSON.stringify(bestNoNegativeSolution[0].solution) !== JSON.stringify(bestScoreSolution[0].solution))) {
             result.push(bestNoNegativeSolution[0]);
         }
-        
+
         console.log(`[程序优化器] 返回 ${result.length} 个解决方案`);
         return result;
     }
@@ -2321,7 +2426,7 @@
             // 创建程序组合展示
             const combinationDiv = document.createElement('div');
             combinationDiv.className = 'card-combination';
-            
+
             // 显示程序组合和得分
             combinationDiv.innerHTML = `<strong>策略 ${i + 1}:</strong> ` +
                 `<span class="score">纯得分: ${result.score}</span><br>` +
@@ -2347,7 +2452,7 @@
                     const card = cardsData[cardId];
                     const cardDiv = document.createElement('div');
                     cardDiv.className = 'card-item';
-                    
+
                     // 尝试获取程序名称
                     let cardName = `程序 ${cardId}`;
                     if (card.name) {
@@ -2355,25 +2460,25 @@
                     } else if (card.title) {
                         cardName = card.title;
                     }
-                    
+
                     // 获取程序属性
                     let cardAttrs = [0, 0, 0, 0, 0, 0, 0, 0];
                     if (card.attributes && Array.isArray(card.attributes)) {
                         cardAttrs = [...card.attributes];
                         while (cardAttrs.length < 8) cardAttrs.push(0);
                     }
-                    
+
                     // 显示程序属性
                     let cardAttributesText = `<br><strong>属性:</strong> ${formatAttributes(cardAttrs)}`;
-                    
-                    // 显示累积属性 - 确保没有负值
+
+                    // 显示累积资源 - 确保没有负值
                     let cumulativeAttributesText = '';
                     if (result.stepAttributes && result.stepAttributes.length > position + 1) {
                         // 创建一个新数组，确保没有负值显示
                         const displayAttrs = result.stepAttributes[position + 1].map(val => Math.max(0, val));
-                        cumulativeAttributesText = `<br><strong>累积属性:</strong> ${formatAttributes(displayAttrs)}`;
+                        cumulativeAttributesText = `<br><strong>累积资源:</strong> ${formatAttributes(displayAttrs)}`;
                     }
-                    
+
                     cardDiv.innerHTML = `<strong>位置 ${position + 1}:</strong> ${cardName}${cardAttributesText}${cumulativeAttributesText}`;
                     cardsDiv.appendChild(cardDiv);
                 }
@@ -2385,7 +2490,7 @@
             // 确保最终属性和纯增益也不显示负值
             const displayFinalAttrs = result.attributes ? result.attributes.map(val => Math.max(0, val)) : [];
             attributesDiv.innerHTML = `<strong>最终属性:</strong> ${formatAttributes(displayFinalAttrs)}<br>` +
-                                    `<strong>纯增益:</strong> ${formatAttributes(result.netAttributes)}`;
+                `<strong>纯增益:</strong> ${formatAttributes(result.netAttributes)}`;
 
             combinationDiv.appendChild(cardsDiv);
             combinationDiv.appendChild(attributesDiv);
@@ -2409,7 +2514,7 @@
                 return 0;
             }
         });
-        
+
         // 输出属性值用于调试
         console.log(`[程序优化器] 格式化属性值:`, numericAttrs);
 
@@ -2445,10 +2550,11 @@
 
     // 格式化持续时间函数
     function formatDuration(seconds) {
+        console.log(`[程序优化器] 格式化持续时间:`, seconds);
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
-        const remainingSeconds = seconds % 60;
-        
+        const remainingSeconds = Math.floor(seconds % 60); // 强制取整，不要小数
+
         let result = '';
         if (hours > 0) {
             result += `${hours}小时`;
@@ -2456,9 +2562,12 @@
         if (minutes > 0 || hours > 0) {
             result += `${minutes}分钟`;
         }
-        result += `${remainingSeconds}秒`;
-        
+        result += `${remainingSeconds}秒`; // 确保秒数无小数
+
+        console.log(`[程序优化器] 格式化持续时间:`, result);
         return result;
+
+
     }
 
 })();
