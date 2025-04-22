@@ -1,4 +1,5 @@
 const axios = require('axios');
+const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 const path = require('path');
 
@@ -36,6 +37,10 @@ loadConfig();
 // 解构配置
 const { TelegramBotToken, CHAT_ID,pkx } = config;
 
+// Telegram配置
+const bot = new TelegramBot(TelegramBotToken, {
+    polling: false
+});
 // API配置
 const API_CONFIG = {
     url: 'https://rpc.zkwasm-automata.zkwasm.ai/query',
@@ -49,21 +54,10 @@ const API_CONFIG = {
 // 发送消息到Telegram
 async function sendToTelegram(message) {
     try {
-        const response = await axios.post(`https://api.telegram.org/bot${TelegramBotToken}/sendMessage`, {
-            chat_id: CHAT_ID,
-            text: message,
-            parse_mode: 'HTML'
-        });
-
-        if (response.data.ok) {
-            console.log('Telegram消息发送成功');
-        } else {
-            console.error('发送Telegram消息失败:', response.data.description);
-        }
+        await bot.sendMessage(CHAT_ID, message, { parse_mode: 'HTML' });
+        console.log('Telegram消息发送成功');
     } catch (error) {
         console.error('发送Telegram消息失败:', error.message);
-        console.error('请求详细信息:', error.config);
-        console.error('响应数据:', error.response ? error.response.data : null);
     }
 }
 
@@ -75,7 +69,7 @@ async function requestData(pkx) {
             timeout: 10000
         });
 
-        if (response.data && response.data.success && response.data.data) {
+        if (response.data?.success && response.data?.data) {
             return JSON.parse(response.data.data);
         }
         return null;
@@ -84,7 +78,6 @@ async function requestData(pkx) {
         return null;
     }
 }
-
 
 // 格式化数据为消息
 function formatMessage1(data, previousBountyPool) {
@@ -133,7 +126,7 @@ async function main() {
                 if (message) {
                     console.log('准备发送的消息:\n', message);
                     console.log('发送消息到Telegram...');
-                    await sendToTelegram(message);
+                    // await sendToTelegram(message);
                 }
             } else {
                 console.log('奖励池数据未变化');
@@ -145,6 +138,7 @@ async function main() {
         await new Promise(resolve => setTimeout(resolve, 10 * 1000));
     }
 }
+
 
 // 运行脚本
 console.log('启动监控...');
