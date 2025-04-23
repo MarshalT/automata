@@ -7,6 +7,9 @@ let config = {
 
 };
 
+// 存储奖励池历史数据
+const poolHistory = [];
+
 // 加载配置文件
 function loadConfig() {
     const configPath = path.join(__dirname, 'config.json');
@@ -85,7 +88,6 @@ async function requestData(pkx) {
     }
 }
 
-
 // 格式化数据为消息
 function formatMessage1(data, previousBountyPool) {
     if (!data || !data.player || !data.player.data || !data.state) return null;
@@ -101,6 +103,9 @@ function formatMessage1(data, previousBountyPool) {
         }
     }
 
+    // 计算历史变化
+    const hourChanges = calculateHistoricalChanges(currentBountyPool);
+
     // 设置时区为 Asia/Shanghai (北京时间)
     const options = { timeZone: 'Asia/Shanghai', hour12: false };
     const beijingTime = new Date().toLocaleString('zh-CN', options);
@@ -108,7 +113,55 @@ function formatMessage1(data, previousBountyPool) {
     return `🎮 Automata状态更新
 - 奖励池: ${currentBountyPool}
 ${changeMessage}
+- 1小时变化: ${formatChange(hourChanges.oneHour)}
+- 3小时变化: ${formatChange(hourChanges.threeHours)}
+- 24小时变化: ${formatChange(hourChanges.oneDay)}
 ⏰ 更新时间: ${beijingTime}`;
+}
+
+// 格式化变化量
+function formatChange(change) {
+    if (change === null) return "0";
+    return change > 0 ? `+${change}` : `${change}`;
+}
+
+// 计算历史变化
+function calculateHistoricalChanges(currentValue) {
+    const now = Date.now();
+    const oneHourAgo = now - (60 * 60 * 1000);
+    const threeHoursAgo = now - (3 * 60 * 60 * 1000);
+    const oneDayAgo = now - (24 * 60 * 60 * 1000);
+    
+    // 找到最早的记录用于各个时间段对比
+    let oneHourValue = null;
+    let threeHoursValue = null;
+    let oneDayValue = null;
+    
+    // 找出各个时间段内最早的记录
+    for (let i = poolHistory.length - 1; i >= 0; i--) {
+        const record = poolHistory[i];
+        // 为1小时段找记录
+        if (record.timestamp <= oneHourAgo && !oneHourValue) {
+            oneHourValue = record.value;
+        }
+        // 为3小时段找记录
+        if (record.timestamp <= threeHoursAgo && !threeHoursValue) {
+            threeHoursValue = record.value;
+        }
+        // 为24小时段找记录
+        if (record.timestamp <= oneDayAgo && !oneDayValue) {
+            oneDayValue = record.value;
+        }
+        
+        // 如果都找到了，就可以结束循环
+        if (oneHourValue && threeHoursValue && oneDayValue) break;
+    }
+    
+    return {
+        oneHour: oneHourValue ? currentValue - oneHourValue : null,
+        threeHours: threeHoursValue ? currentValue - threeHoursValue : null,
+        oneDay: oneDayValue ? currentValue - oneDayValue : null
+    };
 }
 
 // 主循环
@@ -122,6 +175,19 @@ async function main() {
         if (data) {
             // console.log('请求到的数据:', JSON.stringify(data, null, 2));
             const currentBountyPool = data.state.bounty_pool;
+            
+            // 保存历史数据
+            poolHistory.unshift({
+                timestamp: Date.now(),
+                value: currentBountyPool
+            });
+            
+            // 只保留最近26小时的数据 (略多于24小时以确保有足够数据)
+            const maxAgeMs = 26 * 60 * 60 * 1000;
+            const cutoffTime = Date.now() - maxAgeMs;
+            while (poolHistory.length > 0 && poolHistory[poolHistory.length - 1].timestamp < cutoffTime) {
+                poolHistory.pop();
+            }
 
             if (currentBountyPool !== previousBountyPool) {
                 // 先保存旧值用于传递给formatMessage1，然后再更新
@@ -130,11 +196,14 @@ async function main() {
                 
                 // 使用旧的奖池值计算变化
                 const message = formatMessage1(data, oldBountyPool);
+                
+                // 只有当消息内容变化时才发送
                 if (message) {
                     console.log('准备发送的消息:\n', message);
                     console.log('发送消息到Telegram...');
                     await sendToTelegram(message);
-                }
+                   
+                } 
             } else {
                 console.log('奖励池数据未变化');
             }
