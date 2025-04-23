@@ -78,8 +78,6 @@
             }
         } else {
             console.log('[火箭点击器] 未找到火箭图像元素');
-            // 如果没找到火箭图像，也尝试点击确认按钮
-            // setTimeout(testConfirmButton, 2000);
         }
     }
 
@@ -89,17 +87,7 @@
         
         // 尝试多种可能的确认按钮选择器
         const selectors = [
-            '.rocket-popup-confirm-button .confirm-button-scale .image-button',
-            '.rocket-popup-confirm-button button',
             '.confirm-button-scale .image-button',
-            '.confirm-button-scale button',
-            'button.image-button',
-            '.popup-window button',
-            '.popup-container button',
-            'button:contains("确认")',
-            'button:contains("确定")',
-            'button:contains("Confirm")',
-            'button:contains("OK")'
         ];
         
         let foundButtons = false;
@@ -114,6 +102,8 @@
                     try {
                         if (simulateClick(button)) {
                             console.log('[火箭点击器] 成功点击确认按钮');
+                             // 确认按钮点击后，延迟1秒再点击屏幕最下方
+                             setTimeout(clickBottomOfScreen, 1000);
                             return; // 只点击第一个找到的确认按钮
                         } else {
                             console.log('[火箭点击器] 点击确认按钮失败');
@@ -129,7 +119,51 @@
             console.log('[火箭点击器] 未找到确认按钮');
         }
     }
+    function clickBottomOfScreen() {
+        console.log('[程序优化器] 尝试点击屏幕最下方...');
+        try {
+            // 获取屏幕高度
+            const screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            // 计算屏幕最下方的坐标（留出50像素的边界）
+            const bottomY = screenHeight - 50;
+            // 中间位置
+            const centerX = (window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth) / 2;
 
+            // 创建点击事件
+            try {
+                // 尝试使用MouseEvent
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: centerX,
+                    clientY: bottomY
+                });
+
+                // 获取最下方的元素并点击
+                // 第一种方法：使用elementFromPoint
+                const element = document.elementFromPoint(centerX, bottomY);
+                if (element) {
+                    element.dispatchEvent(clickEvent);
+                    console.log(`[程序优化器] 成功点击屏幕最下方元素: ${element.tagName}`);
+                } else {
+                    // 如果没有找到元素，尝试点击文档体
+                    document.body.dispatchEvent(clickEvent);
+                    console.log('[程序优化器] 没有在指定位置找到元素，已点击文档体');
+                }
+            } catch (e) {
+                console.error(`[程序优化器] 点击屏幕最下方失败: ${e.message}`);
+                // 备用方案：尝试点击页面上最后一个元素
+                const allElements = document.querySelectorAll('*');
+                if (allElements && allElements.length > 0) {
+                    const lastElement = allElements[allElements.length - 1];
+                    simulateClick(lastElement);
+                    console.log(`[程序优化器] 尝试点击页面最后一个元素: ${lastElement.tagName}`);
+                }
+            }
+        } catch (e) {
+            console.error(`[程序优化器] 点击屏幕最下方时出错: ${e.message}`);
+        }
+    }
     // 定义一个函数来运行测试
     function runTest() {
         console.log('[火箭点击器] 开始执行测试...');

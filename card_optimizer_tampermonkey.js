@@ -1419,20 +1419,7 @@
 
         // 尝试多种可能的确认按钮选择器
         const selectors = [
-            '.rocket-popup-confirm-button .confirm-button-scale .image-button',
-            '.rocket-popup-confirm-button button',
             '.confirm-button-scale .image-button',
-            '.confirm-button-scale button',
-            'button.image-button',
-            '.popup-window button',
-            '.popup-container button',
-            // jQuery选择器可能不兼容，移除这些
-            // 'button:contains("确认")',
-            // 'button:contains("确定")',
-            // 'button:contains("Confirm")',
-            // 'button:contains("OK")',
-            // 改用文本内容匹配
-            'button'
         ];
 
         let foundButtons = false;
