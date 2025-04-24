@@ -7,7 +7,7 @@ const sha256 = require('sha256');
 const BN = require('bn.js');
 
 // 导入delphinus-curves库
-const { PrivateKey, bnToHexLe } = require('./atm/delphinus-curves/altjubjub.js');
+const { PrivateKey, bnToHexLe, CurveField, Point } = require('./atm/delphinus-curves/altjubjub.js');
 const { Field } = require('./atm/delphinus-curves/field.js');
 const { poseidon } = require('./atm/delphinus-curves/poseidon.js');
 
@@ -63,6 +63,65 @@ async function getSignature(wallet) {
     const signature = await wallet.signMessage(config.signingMessage);
     console.log(`签名结果: ${signature}`);
     return signature;
+}
+
+// 实现sign函数 - 基于atm/sign.ts中的实现
+function sign(cmd, prikey) {
+    console.log('开始使用私钥签名...');
+    console.log('- 私钥:', prikey);
+    console.log('- 消息数组长度:', cmd.length);
+    
+    // 创建私钥对象
+    let pkey = PrivateKey.fromString(prikey);
+    let r = pkey.r();
+    let R = Point.base.mul(r);
+    
+    // 计算哈希
+    let H;
+    let fvalues = [];
+    let h = 0n;
+    
+    for (let i = 0; i < cmd.length;) {
+        let v = 0n;
+        let j = 0;
+        for (; j < 3; j++) {
+            if (i + j < cmd.length) {
+                v = v + (cmd[i + j] << (64n * BigInt(j)));
+                h = h + (cmd[i + j] << (64n * BigInt(j + i)));
+            }
+        }
+        i = i + j;
+        fvalues.push(new Field(new BN(v.toString(10), 10)));
+    }
+    
+    // 使用Poseidon哈希函数
+    H = poseidon(fvalues).v;
+    let hbn = new BN(H.toString(10));
+    let msgbn = new BN(h.toString(10));
+    
+    // 计算签名
+    let S = r.add(pkey.key.mul(new CurveField(hbn)));
+    let pubkey = pkey.publicKey;
+    
+    // 返回签名数据
+    const data = {
+        msg: bnToHexLe(msgbn, cmd.length * 8),
+        hash: bnToHexLe(hbn),
+        pkx: bnToHexLe(pubkey.key.x.v),
+        pky: bnToHexLe(pubkey.key.y.v),
+        sigx: bnToHexLe(R.x.v),
+        sigy: bnToHexLe(R.y.v),
+        sigr: bnToHexLe(S.v),
+    };
+    
+    console.log('签名数据:');
+    console.log(`- 公钥X: ${data.pkx}`);
+    console.log(`- 公钥Y: ${data.pky}`);
+    console.log(`- 签名X: ${data.sigx}`);
+    console.log(`- 签名Y: ${data.sigy}`);
+    console.log(`- 签名R: ${data.sigr}`);
+    
+    return data;
 }
 
 // 从签名派生L2账户 - 完全按照reduxstate.ts中的方式
@@ -123,6 +182,7 @@ function deriveL2AccountFromSignature(signature) {
                 return {
                     success: true,
                     pubkey: pubkeyLE,
+                    privateKeyHex: privateKeyHex,
                     message: "派生的公钥匹配成功"
                 };
             } else {
@@ -130,6 +190,7 @@ function deriveL2AccountFromSignature(signature) {
                 return {
                     success: true, // 仍然返回成功但使用预期的公钥
                     pubkey: expectedPubkeyLe,
+                    privateKeyHex: privateKeyHex,
                     message: "使用预期的公钥继续"
                 };
             }
@@ -256,6 +317,7 @@ async function deriveL2Account(signature) {
     return {
         success: true,
         publicKey: result.pubkey,
+        privateKeyHex: result.privateKeyHex,    
         method: result.message
     };
 }
@@ -385,6 +447,7 @@ async function main() {
         } else {
             console.log('用户状态查询成功:', stateData.data);
         }
+        sign("123456", l2Account.privateKeyHex);
         
         console.log('所有操作完成！');
         
@@ -416,6 +479,7 @@ module.exports = {
     connectWallet,
     getSignature,
     deriveL2Account,
+    sign,
     queryConfig,
     queryUserState,
     main
