@@ -6,3 +6,5 @@ test/config.json
 transaction_report.html
 transactions.json
 test/ca.py
+*.json
+atm
