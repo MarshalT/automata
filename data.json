@@ -1,65 +1,46 @@
 {
     "player": {
-        "nonce": 40,
+        "nonce": 8,
         "data": {
-            "level": 6,
-            "exp": 107,
-            "last_check_point": 437288,
-            "energy": 538,
-            "cost_info": 3,
-            "current_cost": 16,
+            "level": 1,
+            "exp": 5,
+            "last_check_point": 13325,
+            "energy": 106,
+            "cost_info": 1,
+            "current_cost": 1,
             "redeem_info": [
-                7,
-                7,
-                6,
+                0,
+                0,
+                0,
                 0,
                 0,
                 0,
                 0,
                 0
             ],
-            "last_interest_stamp": 12902082081696,
+            "last_interest_stamp": 428208239424115,
             "objects": [
                 {
-                    "modifier_info": "844424930570719",
+                    "modifier_info": "562949953434661",
                     "cards": [
                         0,
+                        0,
                         1,
                         2,
                         0,
                         1,
                         1,
-                        2,
-                        0
+                        2
                     ],
                     "attributes": [
-                        2,
-                        2,
+                        0,
+                        0,
                         0,
                         0
                     ]
                 },
                 {
-                    "modifier_info": "844424930570725",
-                    "cards": [
-                        0,
-                        1,
-                        2,
-                        0,
-                        1,
-                        2,
-                        2,
-                        0
-                    ],
-                    "attributes": [
-                        3,
-                        3,
-                        0,
-                        0
-                    ]
-                },
-                {
-                    "modifier_info": "438758",
+                    "modifier_info": "13361",
                     "cards": [
                         0,
                         0,
@@ -79,22 +60,22 @@
                 }
             ],
             "local": [
-                1985,
-                3755,
-                2540,
+                24,
+                24,
+                12,
                 0,
                 2,
                 0,
                 0,
-                23
+                97694
             ],
             "cards": [
                 {
-                    "duration": 40,
+                    "duration": 100,
                     "attributes": [
-                        -10,
-                        -10,
-                        20,
+                        -2,
+                        -2,
+                        4,
                         0,
                         0,
                         0,
@@ -103,51 +84,12 @@
                     ]
                 },
                 {
-                    "duration": 60,
-                    "attributes": [
-                        15,
-                        0,
-                        -10,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0
-                    ]
-                },
-                {
-                    "duration": 70,
-                    "attributes": [
-                        0,
-                        15,
-                        -10,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0
-                    ]
-                },
-                {
-                    "duration": 65,
-                    "attributes": [
-                        10,
-                        0,
-                        -30,
-                        0,
-                        20,
-                        0,
-                        0,
-                        0
-                    ]
-                },
-                {
-                    "duration": 64,
+                    "duration": 110,
                     "attributes": [
                         3,
-                        -4,
                         0,
-                        -3,
+                        -2,
+                        0,
                         0,
                         0,
                         0,
@@ -155,24 +97,11 @@
                     ]
                 },
                 {
-                    "duration": 149,
+                    "duration": 120,
                     "attributes": [
                         0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0
-                    ]
-                },
-                {
-                    "duration": 159,
-                    "attributes": [
-                        1,
-                        0,
-                        0,
+                        3,
+                        -2,
                         0,
                         0,
                         0,
@@ -181,59 +110,7 @@
                     ]
                 },
                 {
-                    "duration": 139,
-                    "attributes": [
-                        0,
-                        -1,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0
-                    ]
-                },
-                {
-                    "duration": 198,
-                    "attributes": [
-                        -3,
-                        4,
-                        -1,
-                        -1,
-                        0,
-                        0,
-                        1,
-                        0
-                    ]
-                },
-                {
-                    "duration": 208,
-                    "attributes": [
-                        -1,
-                        -1,
-                        0,
-                        0,
-                        2,
-                        0,
-                        0,
-                        0
-                    ]
-                },
-                {
-                    "duration": 168,
-                    "attributes": [
-                        0,
-                        0,
-                        0,
-                        1,
-                        0,
-                        0,
-                        0,
-                        0
-                    ]
-                },
-                {
-                    "duration": 148,
+                    "duration": 169,
                     "attributes": [
                         0,
                         0,
@@ -249,7 +126,7 @@
         }
     },
     "state": {
-        "bounty_pool": 51312612,
-        "counter": 438767
+        "bounty_pool": 19699,
+        "counter": 13375
     }
 }
