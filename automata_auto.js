@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const sha256 = require('sha256');
 const BN = require('bn.js');
+const readline = require('readline');
 
 const game = require('./game_simplified.js');
 
@@ -26,7 +27,7 @@ const config = {
     signingMessage: '0xAUTOMATA', // 要签名的消息
     walletConfigPath: path.join(__dirname, 'wallet_config.json')
 };
-
+let objects=0   
 // 辅助函数: 延迟执行
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -252,7 +253,7 @@ function deriveL2AccountFromSignature(signature) {
         // 创建L2AccountInfo实例
         const l2Account = new L2AccountInfo(privateKeyHex);
 
-        // 获取公钥和十六进制字符串形式 
+        // 获取公钥和十六进制字符串形式
         const pubkeyHex = l2Account.toHexStr();
         // console.log(`派生的L2公钥(大端序): ${pubkeyHex}`);
 
@@ -352,7 +353,7 @@ class ZKWasmAppRpc {
 
 
 
-    // 发送交易 
+    // 发送交易
     async sendWithdrawTransaction(signatureData) {
         try {
             console.log('发送...');
@@ -555,10 +556,10 @@ class PlayerConvention {
                 let nonce = BigInt(data.player.nonce);
                 return nonce;
             }
-            return 1n; // 默认nonce值
+            return 0n; // 默认nonce值
         } catch (error) {
             console.error('获取nonce失败:', error.message);
-            return 1n; // 默认nonce值
+            return 0n; // 默认nonce值
         }
     }
 
@@ -575,44 +576,8 @@ class PlayerConvention {
 
             const cmd = createCommand(nonce, game.CMD_DEPOSIT, [pid_1, pid_2, tokenIndex, amount]);
             console.log('存款命令创建成功，长度:', cmd.length);
-
-            // 将命令转换为十六进制字符串
-            const commandBytes = new Uint8Array(cmd.length * 8);
-            const dataView = new DataView(commandBytes.buffer);
-
-            for (let i = 0; i < cmd.length; i++) {
-                dataView.setBigUint64(i * 8, cmd[i], true); // true = littleEndian
-            }
-
-            let commandHex = '';
-            for (let i = 0; i < commandBytes.length; i++) {
-                commandHex += commandBytes[i].toString(16).padStart(2, '0');
-            }
-
-            console.log('命令十六进制表示:', '0x' + commandHex);
-            console.log('购买新程序命令:', Array.from(cmd).map(n => '0x' + n.toString(16)));
-
-            const signatureData = sign(cmd, privateKey);
-            console.log('签名结果:', signatureData);
-
-            // 构建交易请求参数
-            const buynewprogramParams = {
-                msg: commandHex,
-                hash: signatureData.hash,
-                pkx: signatureData.pkx,
-                pky: signatureData.pky,
-                sigx: signatureData.sigx,
-                sigy: signatureData.sigy,
-                sigr: signatureData.sigr
-            };
-
-            console.log('购买新程序交易参数:', buynewprogramParams);
-
-            // 使用新方法发送交易
-            const state = await this.rpc.sendWithdrawTransaction(buynewprogramParams);
-            console.log('购买新程序交易发送成功:', state);
+            const state = await this.rpc.sendandsign(cmd, privateKey);
             return state;
-
 
         } catch (e) {
             console.error('存款失败:', e.message);
@@ -633,42 +598,7 @@ class PlayerConvention {
             );
 
             console.log('购买新程序命令创建成功，长度:', cmd.length);
-
-            // 将命令转换为十六进制字符串
-            const commandBytes = new Uint8Array(cmd.length * 8);
-            const dataView = new DataView(commandBytes.buffer);
-
-            for (let i = 0; i < cmd.length; i++) {
-                dataView.setBigUint64(i * 8, cmd[i], true); // true = littleEndian
-            }
-
-            let commandHex = '';
-            for (let i = 0; i < commandBytes.length; i++) {
-                commandHex += commandBytes[i].toString(16).padStart(2, '0');
-            }
-
-            console.log('命令十六进制表示:', '0x' + commandHex);
-            console.log('购买新程序命令:', Array.from(cmd).map(n => '0x' + n.toString(16)));
-
-            const signatureData = sign(cmd, privateKey);
-            console.log('签名结果:', signatureData);
-
-            // 构建交易请求参数
-            const buynewprogramParams = {
-                msg: commandHex,
-                hash: signatureData.hash,
-                pkx: signatureData.pkx,
-                pky: signatureData.pky,
-                sigx: signatureData.sigx,
-                sigy: signatureData.sigy,
-                sigr: signatureData.sigr
-            };
-
-            console.log('购买新程序交易参数:', buynewprogramParams);
-
-            // 使用新方法发送交易
-            const state = await this.rpc.sendWithdrawTransaction(buynewprogramParams);
-            console.log('购买新程序交易发送成功:', state);
+            const state = await this.rpc.sendandsign(cmd, privateKey);
             return state;
 
 
@@ -697,43 +627,7 @@ class PlayerConvention {
             isCreating
         );
 
-        console.log('创建机器人命令创建成功，长度:', cmd.length);
-
-        // 将命令转换为十六进制字符串
-        const commandBytes = new Uint8Array(cmd.length * 8);
-        const dataView = new DataView(commandBytes.buffer);
-
-        for (let i = 0; i < cmd.length; i++) {
-            dataView.setBigUint64(i * 8, cmd[i], true); // true = littleEndian
-        }
-
-        let commandHex = '';
-        for (let i = 0; i < commandBytes.length; i++) {
-            commandHex += commandBytes[i].toString(16).padStart(2, '0');
-        }
-
-        console.log('命令十六进制表示:', '0x' + commandHex);
-        console.log('创建机器人命令     :', Array.from(cmd).map(n => '0x' + n.toString(16)));
-
-        const signatureData = sign(cmd, privateKey);
-        console.log('签名结果:', signatureData);
-
-        // 构建交易请求参数
-        const buynewprogramParams = {
-            msg: commandHex,
-            hash: signatureData.hash,
-            pkx: signatureData.pkx,
-            pky: signatureData.pky,
-            sigx: signatureData.sigx,
-            sigy: signatureData.sigy,
-            sigr: signatureData.sigr
-        };
-
-        console.log('创建机器人交易参数:', buynewprogramParams);
-
-        // 使用新方法发送交易
-        const state = await this.rpc.sendWithdrawTransaction(buynewprogramParams);
-        console.log('购买新程序交易发送成功:', state);
+        const state = await this.rpc.sendandsign(cmd, privateKey);
         return state;
 
 
@@ -775,44 +669,7 @@ class PlayerConvention {
 
 
 
-            console.log('提款命令:', Array.from(cmd).map(n => '0x' + n.toString(16)));
-
-
-            // 将命令转换为十六进制字符串格式
-            let commandHex = '';
-            const commandBytes = new Uint8Array(cmd.length * 8);
-            const dataView = new DataView(commandBytes.buffer);
-
-            for (let i = 0; i < cmd.length; i++) {
-                dataView.setBigUint64(i * 8, cmd[i], true); // true = littleEndian
-            }
-
-            for (let i = 0; i < commandBytes.length; i++) {
-                commandHex += commandBytes[i].toString(16).padStart(2, '0');
-            }
-
-            console.log('命令十六进制表示:', '0x' + commandHex);
-
-            // 使用私钥签名
-            const signatureData = sign(cmd, privateKey);
-            console.log('签名结果:', signatureData);
-
-            // 构建提款交易请求参数
-            const withdrawParams = {
-                msg: commandHex,
-                hash: signatureData.hash,
-                pkx: signatureData.pkx,
-                pky: signatureData.pky,
-                sigx: signatureData.sigx,
-                sigy: signatureData.sigy,
-                sigr: signatureData.sigr
-            };
-
-            console.log('提款交易参数:', withdrawParams);
-
-            // 使用新方法发送提款交易
-            const state = await this.rpc.sendWithdrawTransaction(withdrawParams);
-            console.log('提款交易发送成功:', state);
+            const state = await this.rpc.sendandsign(cmd, privateKey);
             return state;
         } catch (e) {
             console.error('提款失败:', e.message);
@@ -834,10 +691,166 @@ class PlayerConvention {
 
     }
 
+    async Registration(privateKey) {
+
+        const nonce = await this.getNonce();
+
+        // 创建升级机器人命令
+        const cmd = game.getInsPlayerTransactionCommandArray(nonce);
+
+        const state = await this.rpc.sendandsign(cmd, privateKey);
+        return state;
+
+    }
+
 }
 
+// 创建readline接口
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
-// 主函数 - 连接钱包、获取签名、派生L2账户、查询状态
+// 显示命令菜单
+function showMenu() {
+    console.log('\n==== Automata 操作菜单 ====');
+    console.log('1. 注册');
+    console.log('2. 查询用户状态');
+    console.log('3. 购买新程序');
+    console.log('4. 创建机器人');
+    console.log('5. 收集能量');
+    console.log('6. 升级机器人属性1');
+    console.log('7. 升级机器人属性2');
+    console.log('8. 升级机器人属性3');
+    console.log('9. 提款');
+    console.log('0. 退出');
+    console.log('======================');
+}
+
+// 主交互函数
+async function interactiveMode(wallet, l2Account, player) {
+    showMenu();
+
+    rl.question('请输入操作序号: ', async (answer) => {
+        const option = parseInt(answer.trim());
+
+        try {
+            switch (option) {
+                case 0: // 退出
+                    console.log('退出程序...');
+                    rl.close();
+                    return;
+                case 1: // 注册
+                    const Registration = await player.Registration(l2Account.privateKeyHex);
+                    console.log('注册状态:', JSON.stringify(Registration, null, 2));
+                    break;
+
+                case 2: // 查询用户状态
+                    const userinfo = await player.getState();
+                    console.log('用户状态:', JSON.stringify(userinfo, null, 2));
+                    break;
+
+                case 3: // 购买新程序
+                    const buynewprogramResult = await player.buynewprogram(
+                        l2Account.privateKeyHex
+                    );
+                    console.log('购买新程序结果:', buynewprogramResult);
+                    break;
+
+                case 4: // 创建机器人
+                    const programIndexes = [1, 0, 1, 2, 0, 1, 1, 2]; // 示例程序索引
+                    const objectIndex = 0; // 示例对象索引
+
+                    const createRobotResult = await player.createRobot(
+                        l2Account.privateKeyHex,
+                        programIndexes,
+                        objectIndex,
+                        true // 创建新对象
+                    );
+                    console.log('创建机器人结果:', createRobotResult);
+                    break;
+
+                case 5: // 收集能量
+                    const rocketResult = await player.rocket(l2Account.privateKeyHex);
+                    console.log('收集能量结果:', rocketResult);
+                    break;
+
+                case 6: // 升级机器人属性1
+                    console.log('开始升级机器人属性1...');
+                    rl.question('请输入升级次数 (默认1次): ', async (countStr) => {
+                        const count = parseInt(countStr.trim()) || 1;
+                        for (let i = 0; i < count; i++) {
+                            const upgradeBotResult = await player.UpgradeBot(l2Account.privateKeyHex, 0, 1);
+                            console.log(`升级机器人属性1结果 (${i + 1}/${count}):`, upgradeBotResult);
+                            if (i < count - 1) await delay(1000);
+                        }
+                        continueInteraction(wallet, l2Account, player);
+                    });
+                    return;
+
+                case 7: // 升级机器人属性2
+                    console.log('开始升级机器人属性2...');
+                    rl.question('请输入升级次数 (默认1次): ', async (countStr) => {
+                        const count = parseInt(countStr.trim()) || 1;
+                        for (let i = 0; i < count; i++) {
+                            const upgradeBotResult = await player.UpgradeBot(l2Account.privateKeyHex, 0, 2);
+                            console.log(`升级机器人属性2结果 (${i + 1}/${count}):`, upgradeBotResult);
+                            if (i < count - 1) await delay(1000);
+                        }
+                        continueInteraction(wallet, l2Account, player);
+                    });
+                    return;
+
+                case 8: // 升级机器人属性3
+                    console.log('开始升级机器人属性3...');
+                    rl.question('请输入升级次数 (默认1次): ', async (countStr) => {
+                        const count = parseInt(countStr.trim()) || 1;
+                        for (let i = 0; i < count; i++) {
+                            const upgradeBotResult = await player.UpgradeBot(l2Account.privateKeyHex, 0, 3);
+                            console.log(`升级机器人属性3结果 (${i + 1}/${count}):`, upgradeBotResult);
+                            if (i < count - 1) await delay(1000);
+                        }
+                        continueInteraction(wallet, l2Account, player);
+                    });
+                    return;
+
+                case 9: // 提款
+                    rl.question('请输入提款金额 (默认100): ', async (amountStr) => {
+                        const amount = parseInt(amountStr.trim()) || 100;
+                        const withdrawResult = await player.withdrawRewards(
+                            l2Account.privateKeyHex,
+                            wallet.address,
+                            0n,
+                            amount,
+                            true
+                        );
+                        console.log('提款结果:', withdrawResult);
+                        continueInteraction(wallet, l2Account, player);
+                    });
+                    return;
+                default:
+                    console.log('无效的选项，请重新输入');
+                    break;
+            }
+
+            if (option !== 0) {
+                continueInteraction(wallet, l2Account, player);
+            }
+        } catch (error) {
+            // console.error('执行操作时发生错误:', error);
+            continueInteraction(wallet, l2Account, player);
+        }
+    });
+}
+
+// 继续交互
+function continueInteraction(wallet, l2Account, player) {
+    rl.question('\n按回车继续...', () => {
+        interactiveMode(wallet, l2Account, player);
+    });
+}
+
+// 修改main函数结尾部分，使用交互式模式替代原来的自动执行
 async function main() {
     console.log('开始执行...');
     const rpc = new ZKWasmAppRpc(config.apiEndpoint, config.queryEndpoint, config.configEndpoint);
@@ -874,76 +887,18 @@ async function main() {
     );
     console.log('PlayerConvention已初始化');
 
-
-
-    // 获取状态
+    // // 获取初始状态
     const userinfo = await player.getState();
+    // console.log('初始用户状态:', JSON.stringify(userinfo, null, 2));
 
-    //购买程序
-    for (let i = 0; i < 2; i++) {
+    //
+    console.log(`机器人数据:`, JSON.stringify(userinfo.player.data.objects, null, 2));
+    console.log(`机器人数量: ${userinfo.player.data.objects ? userinfo.player.data.objects.length : 0}`);
+    objects=userinfo.player.data.objects ? userinfo.player.data.objects.length : 0;
+    // 启动交互式模式
+    interactiveMode(wallet, l2Account, player);
 
-        const buynewprogramResult = await player.buynewprogram(
-            l2Account.privateKeyHex
-        );
-        console.log('购买新程序结果:', buynewprogramResult);
-        console.log(i.toString() + '次');
-        await delay(1000);
-    }
-
-
-    // 创建机器人
-    const programIndexes = [1, 0, 1, 2, 0, 1, 1, 2]; // 示例程序索引
-    const objectIndex = 0; // 示例对象索引
-
-    const createRobotResult = await player.createRobot(
-        l2Account.privateKeyHex,
-        programIndexes,
-        objectIndex,
-        false // 创建新对象
-    );
-    console.log('创建机器人结果:', createRobotResult);
-
-
-    const rocketResult = await player.rocket(l2Account.privateKeyHex);
-    console.log('收集能量结果:', rocketResult);
-
-
-    //升级机器人
-    for (let i = 0; i < 31; i++) {
-        const upgradeBotResult = await player.UpgradeBot(l2Account.privateKeyHex, 0, 1);
-        console.log('升级机器人结果:', upgradeBotResult);
-
-    }
-
-    for (let i = 0; i < 31; i++) {
-        const upgradeBotResult = await player.UpgradeBot(l2Account.privateKeyHex, 0, 2);
-        console.log('升级机器人结果:', upgradeBotResult);
-
-    }
-
-
-    for (let i = 0; i < 31; i++) {
-        const upgradeBotResult = await player.UpgradeBot(l2Account.privateKeyHex, 0, 3);
-        console.log('升级机器人结果:', upgradeBotResult);
-
-    }
-
-    //提款
-    const withdrawResult = await player.withdrawRewards(
-        l2Account.privateKeyHex,
-        wallet.address,
-        0n,
-        100, // 
-        true
-    );
-    console.log('提款结果:', withdrawResult);
-
-
-
-
-
-    console.log('脚本执行完成');
-
+    // 返回成功状态（这部分会在完全退出时执行）
     return {
         success: true,
         wallet: wallet.address,
@@ -966,4 +921,4 @@ module.exports = {
     deriveL2Account,
     sign,
     main
-}; 
+};
