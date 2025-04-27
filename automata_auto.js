@@ -27,7 +27,7 @@ const config = {
     signingMessage: '0xAUTOMATA', // 要签名的消息
     walletConfigPath: path.join(__dirname, 'wallet_config.json')
 };
-let objects=0   
+let botcount = 0
 // 辅助函数: 延迟执行
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -727,6 +727,196 @@ function showMenu() {
     console.log('======================');
 }
 
+// 升级机器人属性1
+async function handleUpgradeBot(player, l2Account, attrIndex, wallet) {
+    if (botcount <= 0) {
+        console.log('您当前没有机器人，请先创建机器人。');
+        continueInteraction(wallet, l2Account, player);
+        return;
+    }
+
+    // 询问用户要升级哪个机器人
+    console.log(`您当前有 ${botcount} 个机器人。`);
+    rl.question(`请选择要升级的机器人索引 (0-${botcount - 1}): `, (botIndexStr) => {
+        const botIndex = parseInt(botIndexStr.trim());
+
+        // 验证输入的机器人索引是否有效
+        if (isNaN(botIndex) || botIndex < 0 || botIndex >= botcount) {
+            console.log(`无效的机器人索引，必须是0-${botcount - 1}之间的数字。`);
+            continueInteraction(wallet, l2Account, player);
+            return;
+        }
+
+        // 询问升级次数
+        rl.question('请输入升级次数 (默认1次): ', async (countStr) => {
+            const count = parseInt(countStr.trim()) || 1;
+            console.log(`开始升级机器人${botIndex}的属性${attrIndex}，共${count}次...`);
+
+            try {
+                for (let i = 0; i < count; i++) {
+                    const upgradeBotResult = await player.UpgradeBot(
+                        l2Account.privateKeyHex,
+                        botIndex,
+                        attrIndex
+                    );
+                    console.log(`升级机器人${botIndex}属性${attrIndex}结果 (${i + 1}/${count}):`, upgradeBotResult);
+                    if (i < count - 1) await delay(1000);
+                }
+            } catch (error) {
+                console.error(`升级机器人失败: ${error.message}`);
+            }
+
+            continueInteraction(wallet, l2Account, player);
+        });
+    });
+}
+
+// 购买新程序功能
+async function handleBuyNewProgram(player, l2Account, wallet) {
+    console.log('购买新程序...');
+    
+    // 询问用户购买次数
+    rl.question('请输入购买次数 (默认1次): ', async (countStr) => {
+        const count = parseInt(countStr.trim()) || 1;
+        console.log(`准备购买新程序，共${count}次...`);
+        
+        try {
+            for (let i = 0; i < count; i++) {
+                console.log(`进行第 ${i + 1}/${count} 次购买...`);
+                const buynewprogramResult = await player.buynewprogram(
+                    l2Account.privateKeyHex
+                );
+                console.log(`购买新程序结果 (${i + 1}/${count}):`, buynewprogramResult);
+                
+                // 如果不是最后一次，等待一秒再继续
+                if (i < count - 1) await delay(1000);
+            }
+        } catch (error) {
+            console.error('购买新程序失败:', error.message);
+        }
+        
+        continueInteraction(wallet, l2Account, player);
+    });
+}
+
+// 创建机器人函数
+async function handleCreateRobot(player, l2Account, wallet) {
+    console.log('开始创建机器人...');
+    
+    // 默认程序索引
+    const defaultProgramIndexes = [0, 0, 1, 2, 0, 1, 1, 2]; 
+    
+    // 询问是否创建新对象
+    rl.question('是否创建新对象? (y/n，默认n): ', (createNewStr) => {
+        const createNew = createNewStr.trim().toLowerCase() === 'y';
+        console.log(`创建新对象: ${createNew ? '是' : '否'}`);
+        
+        // 如果不创建新对象且当前没有机器人，提示用户
+        if (!createNew && botcount <= 0) {
+            console.log('您当前没有机器人，必须先创建新对象。');
+            rl.question('继续并创建新对象? (y/n): ', async (continueStr) => {
+                if (continueStr.trim().toLowerCase() !== 'y') {
+                    console.log('已取消创建机器人。');
+                    continueInteraction(wallet, l2Account, player);
+                    return;
+                }
+                
+                // 用户确认后继续并强制创建新对象
+                await processCreateRobot(true, 0, defaultProgramIndexes);
+            });
+            return;
+        }
+        
+        // 如果不创建新对象，让用户选择现有机器人的索引
+        if (!createNew && botcount > 0) {
+            rl.question(`请选择要更新的机器人索引 (0-${botcount - 1}): `, (botIndexStr) => {
+                const botIndex = parseInt(botIndexStr.trim()) || 0;
+                
+                // 验证输入的机器人索引是否有效
+                if (isNaN(botIndex) || botIndex < 0 || botIndex >= botcount) {
+                    console.log(`无效的机器人索引，必须是0-${botcount - 1}之间的数字。`);
+                    continueInteraction(wallet, l2Account, player);
+                    return;
+                }
+                
+                // 询问用户是否要自定义程序索引
+                askForProgramIndexes(botIndex, createNew);
+            });
+        } else {
+            // 如果创建新对象，机器人索引设为botcount
+            askForProgramIndexes(botcount, createNew);
+        }
+    });
+    
+    // 询问用户是否要自定义程序索引
+    function askForProgramIndexes(botIndex, createNew) {
+        rl.question('是否要自定义程序索引? (y/n，默认n): ', (customStr) => {
+            if (customStr.trim().toLowerCase() === 'y') {
+                console.log('请输入8个程序索引，用空格分隔（0-255之间的整数）：');
+                rl.question('程序索引: ', (indexesStr) => {
+                    try {
+                        // 解析用户输入的程序索引
+                        const indexes = indexesStr.trim().split(/\s+/).map(s => parseInt(s.trim()));
+                        
+                        // 验证索引数量和范围
+                        if (indexes.length !== 8) {
+                            console.log('必须提供8个程序索引。');
+                            continueInteraction(wallet, l2Account, player);
+                            return;
+                        }
+                        
+                        for (const idx of indexes) {
+                            if (isNaN(idx) || idx < 0 || idx > 255) {
+                                console.log('程序索引必须在0-255之间。');
+                                continueInteraction(wallet, l2Account, player);
+                                return;
+                            }
+                        }
+                        
+                        // 使用用户输入的程序索引
+                        processCreateRobot(createNew, botIndex, indexes);
+                    } catch (error) {
+                        console.error('解析程序索引时出错：', error.message);
+                        continueInteraction(wallet, l2Account, player);
+                    }
+                });
+            } else {
+                // 使用默认程序索引
+                processCreateRobot(createNew, botIndex, defaultProgramIndexes);
+            }
+        });
+    }
+    
+    // 处理创建机器人的函数
+    async function processCreateRobot(createNew, botIndex, programIndexes) {
+        try {
+            console.log('创建机器人参数：');
+            console.log(`- 机器人索引: ${botIndex}`);
+            console.log(`- 创建新对象: ${createNew}`);
+            console.log(`- 程序索引: [${programIndexes.join(', ')}]`);
+            
+            const createRobotResult = await player.createRobot(
+                l2Account.privateKeyHex,
+                programIndexes,
+                botIndex,
+                createNew
+            );
+            
+            console.log('创建机器人结果:', createRobotResult);
+            
+            // 如果创建新对象成功，更新机器人计数
+            if (createNew && createRobotResult && createRobotResult.success) {
+                botcount++;
+                console.log(`机器人数量已更新，当前共有 ${botcount} 个机器人。`);
+            }
+        } catch (error) {
+            console.error('创建机器人失败：', error.message);
+        }
+        
+        continueInteraction(wallet, l2Account, player);
+    }
+}
+
 // 主交互函数
 async function interactiveMode(wallet, l2Account, player) {
     showMenu();
@@ -747,28 +937,19 @@ async function interactiveMode(wallet, l2Account, player) {
 
                 case 2: // 查询用户状态
                     const userinfo = await player.getState();
-                    console.log('用户状态:', JSON.stringify(userinfo, null, 2));
+                    // console.log('用户状态:', JSON.stringify(userinfo, null, 2));
+                    // 更新机器人数量
+                    botcount = userinfo.player.data.objects ? userinfo.player.data.objects.length : 0;
+                    console.log(`您当前有 ${botcount} 个机器人。`);
                     break;
 
                 case 3: // 购买新程序
-                    const buynewprogramResult = await player.buynewprogram(
-                        l2Account.privateKeyHex
-                    );
-                    console.log('购买新程序结果:', buynewprogramResult);
-                    break;
+                    handleBuyNewProgram(player, l2Account, wallet);
+                    return;
 
                 case 4: // 创建机器人
-                    const programIndexes = [1, 0, 1, 2, 0, 1, 1, 2]; // 示例程序索引
-                    const objectIndex = 0; // 示例对象索引
-
-                    const createRobotResult = await player.createRobot(
-                        l2Account.privateKeyHex,
-                        programIndexes,
-                        objectIndex,
-                        true // 创建新对象
-                    );
-                    console.log('创建机器人结果:', createRobotResult);
-                    break;
+                    handleCreateRobot(player, l2Account, wallet);
+                    return;
 
                 case 5: // 收集能量
                     const rocketResult = await player.rocket(l2Account.privateKeyHex);
@@ -776,42 +957,15 @@ async function interactiveMode(wallet, l2Account, player) {
                     break;
 
                 case 6: // 升级机器人属性1
-                    console.log('开始升级机器人属性1...');
-                    rl.question('请输入升级次数 (默认1次): ', async (countStr) => {
-                        const count = parseInt(countStr.trim()) || 1;
-                        for (let i = 0; i < count; i++) {
-                            const upgradeBotResult = await player.UpgradeBot(l2Account.privateKeyHex, 0, 1);
-                            console.log(`升级机器人属性1结果 (${i + 1}/${count}):`, upgradeBotResult);
-                            if (i < count - 1) await delay(1000);
-                        }
-                        continueInteraction(wallet, l2Account, player);
-                    });
+                    handleUpgradeBot(player, l2Account, 1, wallet);
                     return;
 
                 case 7: // 升级机器人属性2
-                    console.log('开始升级机器人属性2...');
-                    rl.question('请输入升级次数 (默认1次): ', async (countStr) => {
-                        const count = parseInt(countStr.trim()) || 1;
-                        for (let i = 0; i < count; i++) {
-                            const upgradeBotResult = await player.UpgradeBot(l2Account.privateKeyHex, 0, 2);
-                            console.log(`升级机器人属性2结果 (${i + 1}/${count}):`, upgradeBotResult);
-                            if (i < count - 1) await delay(1000);
-                        }
-                        continueInteraction(wallet, l2Account, player);
-                    });
+                    handleUpgradeBot(player, l2Account, 2, wallet);
                     return;
 
                 case 8: // 升级机器人属性3
-                    console.log('开始升级机器人属性3...');
-                    rl.question('请输入升级次数 (默认1次): ', async (countStr) => {
-                        const count = parseInt(countStr.trim()) || 1;
-                        for (let i = 0; i < count; i++) {
-                            const upgradeBotResult = await player.UpgradeBot(l2Account.privateKeyHex, 0, 3);
-                            console.log(`升级机器人属性3结果 (${i + 1}/${count}):`, upgradeBotResult);
-                            if (i < count - 1) await delay(1000);
-                        }
-                        continueInteraction(wallet, l2Account, player);
-                    });
+                    handleUpgradeBot(player, l2Account, 3, wallet);
                     return;
 
                 case 9: // 提款
@@ -887,6 +1041,12 @@ async function main() {
     );
     console.log('PlayerConvention已初始化');
 
+    // 注册
+    console.log('\n==== 示例5: 注册 ====');
+    const Registration = await player.Registration(l2Account.privateKeyHex);
+    console.log('注册状态:', JSON.stringify(Registration, null, 2));
+
+
     // // 获取初始状态
     const userinfo = await player.getState();
     // console.log('初始用户状态:', JSON.stringify(userinfo, null, 2));
@@ -894,22 +1054,22 @@ async function main() {
     //
     console.log(`机器人数据:`, JSON.stringify(userinfo.player.data.objects, null, 2));
     console.log(`机器人数量: ${userinfo.player.data.objects ? userinfo.player.data.objects.length : 0}`);
-    objects=userinfo.player.data.objects ? userinfo.player.data.objects.length : 0;
+    botcount = userinfo.player.data.objects ? userinfo.player.data.objects.length : 0;
     // 启动交互式模式
     interactiveMode(wallet, l2Account, player);
 
     // 返回成功状态（这部分会在完全退出时执行）
-    return {
-        success: true,
-        wallet: wallet.address,
-        l2PublicKey: l2Account.publicKey,
-        pkx: pkxResult.data,
-    };
+    // return {
+    //     success: true,
+    //     wallet: wallet.address,
+    //     l2PublicKey: l2Account.publicKey,
+    //     pkx: pkxResult.data,
+    // };
 }
 
 // Node.js环境下直接执行
 main().then(result => {
-    console.log('执行结果:', JSON.stringify(result, null, 2));
+    // console.log('执行结果:', JSON.stringify(result, null, 2));
 }).catch(error => {
     console.error('执行失败:', error);
 });
