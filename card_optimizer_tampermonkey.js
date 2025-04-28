@@ -1553,7 +1553,7 @@
 
     // 启动定期检查
     setTimeout(scheduleDataCheck, 3000); // 页面加载3秒后开始检查
-
+    setupAutoClickToggle();
 
     // 处理API响应
     function processAPIResponse(response, url) {
@@ -1629,7 +1629,7 @@
                         addDebugInfo(`ATM能量超过10000(${lastLocalValue})，自动开启火箭点击`);
 
                         // 启用自动点击功能
-                        autoClickEnabled = true;
+                        // autoClickEnabled = true;
 
                         // 立即执行一次点击测试
                         testRocketImage();
@@ -1637,12 +1637,21 @@
                         // 启动自动点击定时器
                         startAutoClickInterval();
 
-                        // 更新UI上的开关状态（如果存在）
+                        // // 更新UI上的开关状态（如果存在）
+                        // const toggleCheckbox = document.getElementById('auto-click-toggle');
+                        // if (toggleCheckbox) {
+                        //     toggleCheckbox.checked = true;
+                        // }
+                    }else{
+                        console.log(`[程序优化器] ATM值未超过10000(${lastLocalValue})，自动关闭火箭点击`);
+                        addDebugInfo(`ATM能量未超过10000(${lastLocalValue})，自动关闭火箭点击`);
+                        autoClickEnabled = false;
+                         // 更新UI上的开关状态（如果存在）
                         const toggleCheckbox = document.getElementById('auto-click-toggle');
                         if (toggleCheckbox) {
-                            toggleCheckbox.checked = true;
+                            toggleCheckbox.checked = false;
                         }
-                    }
+                    }   
                 }
 
                 // 更新数据状态显示
