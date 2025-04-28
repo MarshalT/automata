@@ -1501,7 +1501,7 @@
     }
 
     // 全局变量定义 - 用于自动点击控制
-    let autoClickEnabled = true; // 默认启用自动点击
+    let autoClickEnabled = false; // 默认启用自动点击
     let autoClickIntervalId = null; // 定时器ID
 
     // 设置自动点击开关
@@ -1553,15 +1553,7 @@
 
     // 启动定期检查
     setTimeout(scheduleDataCheck, 3000); // 页面加载3秒后开始检查
-    setTimeout(setupAutoClickToggle, 3000); // 设置自动点击开关
 
-    // 同时启动自动点击功能(如果开启)
-    setTimeout(() => {
-        if (autoClickEnabled) {
-            testRocketImage(); // 先执行一次
-            startAutoClickInterval(); // 启动定时功能
-        }
-    }, 5000);
 
     // 处理API响应
     function processAPIResponse(response, url) {
@@ -1608,16 +1600,7 @@
         let playerData = null;
         let cardsFound = false; // 标记是否找到cards数据
 
-        // 路径1: 直接在顶层
-        if (response && response.objects && Array.isArray(response.objects) &&
-            response.cards && Array.isArray(response.cards)) {
-            console.log('[程序优化器] 在顶层找到objects和cards数组');
-            objectsData = processObjectsAndCards(response.objects, response.cards);
-            cardsFound = true;
-            cardsData = response.cards; // 保存cards数据供优化器使用
-        }
-        // 路径2: 在player.data路径下 (根据提供的完整数据结构)
-        else if (response && response.player && response.player.data) {
+        if (response && response.player && response.player.data) {
             playerData = response.player.data;
 
             // 尝试从player.data提取cards数据(用于优化器)
@@ -1635,6 +1618,31 @@
                     while (window.localAttributes.length < 8) window.localAttributes.push(0);
                     console.log(`[程序优化器] 提取到local数组:`, window.localAttributes);
                     addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
+                    //提取local数组 的最后一个元素 当值大于10000时 自动点击火箭  结合自动点击功能 定时器
+                    const lastLocalValue = window.localAttributes[window.localAttributes.length - 1];
+                    console.log(`[程序优化器] local数组最后一个元素值: ${lastLocalValue}`);
+                    addDebugInfo(`local数组最后一个元素值: ${lastLocalValue}`);
+
+                    // 当值大于10000时自动点击火箭
+                    if (lastLocalValue > 10000) {
+                        console.log(`[程序优化器] ATM值超过10000(${lastLocalValue})，自动开启火箭点击`);
+                        addDebugInfo(`ATM能量超过10000(${lastLocalValue})，自动开启火箭点击`);
+
+                        // 启用自动点击功能
+                        autoClickEnabled = true;
+
+                        // 立即执行一次点击测试
+                        testRocketImage();
+
+                        // 启动自动点击定时器
+                        startAutoClickInterval();
+
+                        // 更新UI上的开关状态（如果存在）
+                        const toggleCheckbox = document.getElementById('auto-click-toggle');
+                        if (toggleCheckbox) {
+                            toggleCheckbox.checked = true;
+                        }
+                    }
                 }
 
                 // 更新数据状态显示
@@ -1667,51 +1675,6 @@
                 objectsData = processObjectsAndCards(playerData.objects, playerData.cards);
             } else {
                 console.log('[程序优化器] player.data存在但未找到有效的objects和cards数组');
-            }
-        } else {
-            console.log('[程序优化器] 响应中未找到有效的objects和cards数组', response);
-
-            // 尝试多种可能的数据结构以获取cards
-            // 方式1: response.player.data.cards (automata特定结构)
-            if (response && response.player && response.player.data &&
-                response.player.data.cards && Array.isArray(response.player.data.cards)) {
-                cardsData = response.player.data.cards;
-                cardsFound = true;
-                addDebugInfo(`方式1找到程序数据: ${cardsData.length}张`);
-
-                // 保存完整响应以便后续使用
-                window.fullApiResponse = response;
-
-                // 提取local数组
-                if (response.player.data.local && Array.isArray(response.player.data.local)) {
-                    window.localAttributes = [...response.player.data.local];
-                    // 确保有8个属性
-                    while (window.localAttributes.length < 8) window.localAttributes.push(0);
-                    console.log(`[程序优化器] 提取到local数组:`, window.localAttributes);
-                    addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
-                }
-
-                // 更新数据状态显示
-                if (dataStatusElement) {
-                    dataStatusElement.innerHTML = `<div style="color:#4CAF50;font-weight:bold;">已获取 ${cardsData.length} 张程序数据</div>`;
-                }
-
-                // 显示控制区域
-                const optimizationControls = document.getElementById('optimization-controls');
-                if (optimizationControls) {
-                    optimizationControls.style.display = 'block';
-                }
-
-                const manualDataControls = document.getElementById('manual-data-controls');
-                if (manualDataControls) {
-                    manualDataControls.style.display = 'none'; // 隐藏手动控制区
-                }
-
-                // 显示前3张程序的数据示例
-                const sampleSize = Math.min(3, cardsData.length);
-                for (let i = 0; i < sampleSize; i++) {
-                    addDebugInfo(`程序${i}示例: ${JSON.stringify(cardsData[i]).substring(0, 100)}...`);
-                }
             }
         }
 
