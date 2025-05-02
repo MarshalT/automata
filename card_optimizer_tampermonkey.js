@@ -1642,16 +1642,16 @@
                         // if (toggleCheckbox) {
                         //     toggleCheckbox.checked = true;
                         // }
-                    }else{
+                    } else {
                         console.log(`[程序优化器] ATM值未超过10000(${lastLocalValue})，自动关闭火箭点击`);
                         addDebugInfo(`ATM能量未超过10000(${lastLocalValue})，自动关闭火箭点击`);
                         autoClickEnabled = false;
-                         // 更新UI上的开关状态（如果存在）
+                        // 更新UI上的开关状态（如果存在）
                         const toggleCheckbox = document.getElementById('auto-click-toggle');
                         if (toggleCheckbox) {
                             toggleCheckbox.checked = false;
                         }
-                    }   
+                    }
                 }
 
                 // 更新数据状态显示
@@ -1734,13 +1734,8 @@
                                     const duration = cards[cardIndex].duration * 5; // 基础时长
                                     const speed = robotAttributes[1]; // 速度参数
                                     let adjustedDuration = duration; // 默认不使用速度修正
-
-                                    // 只有当speed>0时才应用速度公式
                                     if (speed > 0) {
-                                        // 计算速度带来的时间减少比例（log₂(speed)%）
-                                        const timeReduction = Math.log2(speed) / 100;
-                                        adjustedDuration = duration * (1 - timeReduction); // 修正后的时长
-                                        console.log(`[优化] 速度=${speed}, 时间减少=${(timeReduction * 100).toFixed(2)}%`);
+                                        adjustedDuration = adjustProcessingTimeBySpeed(duration, speed)
                                     }
 
                                     // 累加时长和记录卡片数据
@@ -1749,11 +1744,6 @@
                                         index: cardIndex,
                                         adjustedDuration
                                     });
-
-                                    console.log(`[优化] 卡片${i + 1}(${cardIndex})时长=${adjustedDuration.toFixed(2)}s`);
-                                    console.log(`totalDuration=${totalDuration.toFixed(2)}s`);
-
-
                                     // 累积卡片属性
                                     if (cards[cardIndex].attributes && Array.isArray(cards[cardIndex].attributes)) {
                                         const cardAttrs = cards[cardIndex].attributes;
@@ -1761,43 +1751,14 @@
                                         // 先处理当前卡片的属性
                                         const processedCardAttrs = [...cardAttrs];
 
-
-
-
                                         // 累积前先用robotAttributes[3] 抵消负数
                                         if (robotAttributes[2] > 0) {
-                                            // 有多少就抵消多少，不需要抵消完
                                             let remainingOffset = robotAttributes[2]; // 可用于抵消的值
-                                            console.log(`[程序优化器] 可用于抵消的值: ${remainingOffset}`);
-
-                                            // 先输出抵消前的属性值
-                                            console.log(`[程序优化器] 抵消前的属性值: ${JSON.stringify(processedCardAttrs)}`);
-
                                             // 从左到右依次抵消负值
                                             for (let i = 0; i < processedCardAttrs.length && i < 8; i++) {
                                                 if (processedCardAttrs[i] < 0) {
-                                                    const originalValue = processedCardAttrs[i];
-                                                    const absValue = Math.abs(originalValue); // 负值的绝对值
-
-                                                    // 如果剩余抵消值足够抵消当前负值
-                                                    if (remainingOffset >= absValue) {
-                                                        processedCardAttrs[i] = 0; // 完全抵消为0                                                 
-                                                        console.log(`[程序优化器] 完全抵消属性${i}的负值: ${originalValue} -> 0, 剩余抵消值: ${remainingOffset}`);
-                                                    } else {
-                                                        // 如果剩余抵消值不足，部分抵消
-                                                        processedCardAttrs[i] = originalValue + remainingOffset; // 部分抵消
-                                                        console.log(`[程序优化器] 部分抵消属性${i}的负值: ${originalValue} -> ${processedCardAttrs[i].toFixed(2)}, 抵消值用完`);
-                                                        remainingOffset = 0; // 抵消值用完
-                                                    }
+                                                    processedCardAttrs[i] = Math.min(0, processedCardAttrs[i] + remainingOffset)
                                                 }
-                                            }
-
-                                            // 输出抵消后的属性值
-                                            console.log(`[程序优化器] 抵消后的属性值: ${JSON.stringify(processedCardAttrs)}`);
-
-                                            // 如果还有剩余抵消值
-                                            if (remainingOffset > 0) {
-                                                console.log(`[程序优化器] 所有负值已抵消，还剩余抵消值: ${remainingOffset}`);
                                             }
                                         }
 
@@ -1806,7 +1767,6 @@
                                         if (robotAttributes[3] > 0) {
                                             const logBonus = Math.floor(Math.log2(robotAttributes[3])); // 取整数部分
                                             console.log(`[程序优化器] log2(${robotAttributes[3]}) = ${Math.log2(robotAttributes[3]).toFixed(4)}, 取整数部分: ${logBonus}`);
-
                                             // 对所有非负属性值应用log2增益
                                             for (let i = 0; i < processedCardAttrs.length && i < 8; i++) {
                                                 if (processedCardAttrs[i] > 0) {
@@ -1816,16 +1776,10 @@
                                                 }
                                             }
                                         }
-
-
-
                                         // 累积资源值 - 使用处理后的属性值
                                         for (let attrIndex = 0; attrIndex < processedCardAttrs.length && attrIndex < 8; attrIndex++) {
                                             cumulativeAttributes[attrIndex] += (processedCardAttrs[attrIndex] || 0);
                                         }
-
-                                        // 输出累积后的属性值
-                                        // console.log(`[程序优化器] 累积后属性: ${JSON.stringify(cumulativeAttributes.map(val => Math.round(val)))}`);
                                     }
                                 } else {
                                     console.warn(`[程序优化器] 无效的卡片索引或缺少duration属性: ${cardIndex}`);
@@ -1834,10 +1788,6 @@
                                 console.error(`[程序优化器] 处理卡片时出错: ${cardErr.message}`);
                             }
                         });
-
-                        // 属性抵消和产出计算已经在每张卡片累积时完成
-                        // 不需要再计算最终产出
-
                         // 存储解析结果
                         objectsData.push({
                             index,
@@ -1971,6 +1921,29 @@
         resultsContainer.innerHTML = '';
     });
 
+    function adjustProcessingTimeBySpeed(originalTime, speedValue) {
+        // 如果Speed为0或负数，保持原始运行时间不变
+        // If Speed is 0 or negative, keep original processing time
+        if (speedValue <= 0) {
+            return originalTime;
+        }
+
+        // 计算(speedValue + 1)的以2为底的对数并取整
+        // Calculate log base 2 of (speedValue + 1) and floor it
+        const logValue = Math.floor(Math.log2(speedValue + 1));
+
+        // 计算调整因子 S
+        // Calculate adjustment factor S
+        const S = 0.1 * logValue;
+
+        // 应用公式调整时间
+        // Apply formula to adjust time
+        const adjustedTime = originalTime * (1 - S);
+
+        // 确保调整后的时间不小于原始时间的10%
+        // Ensure adjusted time is not less than 10% of original time
+        return Math.max(originalTime * 0.1, adjustedTime);
+    }
     // 模拟退火算法 - 优化版
     function simulatedAnnealing(cards, initialTemp = 300, coolingRate = 0.92, iterations = 2000, numRuns = 20, maxSolutions = 6) {
         addDebugInfo(`开始运行模拟退火算法，处理${cards.length}张程序`);
