@@ -1633,7 +1633,7 @@
                         // autoClickEnabled = true;
 
                         // 立即执行一次点击测试
-                        testRocketImage();
+                        // testRocketImage();
 
                         // 启动自动点击定时器
                         startAutoClickInterval();
