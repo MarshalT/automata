@@ -7,6 +7,7 @@
 // @match        https://automata.zkplay.app/*
 // @match        *://zkwasm-automata.zkwasm.ai/*
 // @match        http://114.119.173.203/*
+// @match        http://localhost:3000/
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @grant        GM_log
