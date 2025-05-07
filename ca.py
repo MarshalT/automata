@@ -1,5 +1,5 @@
 
 import math
 
-for i in range(2, 41):
-    print(f"属性点({i-1}) = {math.log2(i)}")
+for i in range(2, 33):
+    print(f"属性3 ({i-1}) 产出＋ {math.log2(i)}")
