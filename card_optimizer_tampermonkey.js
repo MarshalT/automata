@@ -1766,7 +1766,7 @@
                                         // 计算当前卡片的属性增益
                                         // 如果rootAttributes[3] > 0，使用log2(robotAttributes[3])的整数部分来增加所有非负属性值
                                         if (robotAttributes[3] > 0) {
-                                            const logBonus = Math.floor(Math.log2(robotAttributes[3])); // 取整数部分
+                                            const logBonus = Math.floor(Math.log2(robotAttributes[3]+1)); // 取整数部分
                                             console.log(`[程序优化器] log2(${robotAttributes[3]}) = ${Math.log2(robotAttributes[3]).toFixed(4)}, 取整数部分: ${logBonus}`);
                                             // 对所有非负属性值应用log2增益
                                             for (let i = 0; i < processedCardAttrs.length && i < 8; i++) {

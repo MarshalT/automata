@@ -138,8 +138,9 @@ function calculateHistoricalChanges(currentValue) {
     let oneDayValue = null;
     
     // 找出各个时间段内最早的记录
-    for (let i = poolHistory.length - 1; i >= 0; i--) {
+    for (let i = 0; i < poolHistory.length; i++) {
         const record = poolHistory[i];
+        
         // 为1小时段找记录
         if (record.timestamp <= oneHourAgo && !oneHourValue) {
             oneHourValue = record.value;
