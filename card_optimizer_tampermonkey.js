@@ -34,7 +34,7 @@
             ERROR: 3,  // 错误信息
             NONE: 4    // 不显示任何日志
         },
-        
+
         // 日志颜色定义
         COLORS: {
             DEBUG: '#7f8c8d', // 灰色
@@ -43,22 +43,22 @@
             ERROR: '#e74c3c', // 红色
             SYSTEM: '#2ecc71' // 绿色
         },
-        
+
         // 当前日志级别，默认为INFO
         currentLevel: 1,
-        
+
         // 是否在界面中显示日志
         showInUI: true,
-        
+
         // 日志UI元素引用
         logElement: null,
-        
+
         // 日志缓存，存储最近的日志用于UI显示
         logCache: [],
         maxCacheSize: 100,
-        
+
         // 初始化日志设置，从localStorage读取
-        init: function() {
+        init: function () {
             // 尝试从存储中读取日志设置
             try {
                 this.currentLevel = parseInt(GM_getValue('automataLogger_level', this.currentLevel));
@@ -66,12 +66,12 @@
             } catch (e) {
                 console.error('初始化日志设置出错:', e);
             }
-            
+
             console.log(`[AutomataLogger] 初始化完成，日志级别: ${this.getLevelName(this.currentLevel)}, 界面显示: ${this.showInUI}`);
         },
-        
+
         // 根据级别数值获取级别名称
-        getLevelName: function(level) {
+        getLevelName: function (level) {
             for (const name in this.LEVELS) {
                 if (this.LEVELS[name] === level) {
                     return name;
@@ -79,55 +79,55 @@
             }
             return 'UNKNOWN';
         },
-        
+
         // 设置日志级别
-        setLevel: function(level) {
+        setLevel: function (level) {
             if (typeof level === 'string') {
                 level = this.LEVELS[level] || this.LEVELS.INFO;
             }
             this.currentLevel = level;
             GM_setValue('automataLogger_level', level);
-            
+
             // 更新UI上的日志级别选择器
             const selector = document.getElementById('log-level-selector');
             if (selector) {
                 selector.value = this.getLevelName(level);
             }
-            
+
             this.info(`日志级别已设置为: ${this.getLevelName(level)}`);
         },
-        
+
         // 切换界面日志显示
-        toggleUIDisplay: function() {
+        toggleUIDisplay: function () {
             this.showInUI = !this.showInUI;
             GM_setValue('automataLogger_showInUI', this.showInUI);
-            
+
             // 更新UI上的开关状态
             const checkbox = document.getElementById('log-display-toggle');
             if (checkbox) {
                 checkbox.checked = this.showInUI;
             }
-            
+
             // 更新日志区域显示状态
             const logArea = document.getElementById('log-display-area');
             if (logArea) {
                 logArea.style.display = this.showInUI ? 'block' : 'none';
             }
-            
+
             this.info(`日志界面显示已${this.showInUI ? '启用' : '禁用'}`);
         },
-        
+
         // 记录日志
-        log: function(level, message, ...args) {
+        log: function (level, message, ...args) {
             // 如果当前级别低于设置的级别，不记录
             if (level < this.currentLevel) {
                 return;
             }
-            
+
             const levelName = this.getLevelName(level);
             const timestamp = new Date().toLocaleTimeString();
             const formattedMessage = `[${levelName}] ${message}`;
-            
+
             // 控制台输出
             if (level >= this.LEVELS.ERROR) {
                 console.error(`[${timestamp}] ${formattedMessage}`, ...args);
@@ -136,7 +136,7 @@
             } else {
                 console.log(`[${timestamp}] ${formattedMessage}`, ...args);
             }
-            
+
             // 组装日志记录对象
             const logEntry = {
                 level: level,
@@ -146,25 +146,25 @@
                 args: args,
                 color: this.COLORS[levelName] || '#ffffff'
             };
-            
+
             // 添加到日志缓存
             this.logCache.unshift(logEntry);
-            
+
             // 保持缓存大小不超过上限
             if (this.logCache.length > this.maxCacheSize) {
                 this.logCache.pop();
             }
-            
+
             // 如果已创建UI，则更新UI显示
             this.updateLogDisplay();
         },
-        
+
         // 更新界面日志显示
-        updateLogDisplay: function() {
+        updateLogDisplay: function () {
             if (!this.showInUI || !this.logElement) {
                 return;
             }
-            
+
             // 更新日志显示区域
             let logHTML = '';
             for (const entry of this.logCache) {
@@ -172,7 +172,7 @@
                 if (entry.level < this.currentLevel) {
                     continue;
                 }
-                
+
                 let argsText = '';
                 if (entry.args && entry.args.length > 0) {
                     argsText = entry.args.map(arg => {
@@ -186,7 +186,7 @@
                         return arg;
                     }).join(' ');
                 }
-                
+
                 logHTML += `<div style="margin: 3px 0; color: ${entry.color}">
                     <span style="color: #95a5a6; font-size: 0.85em;">[${entry.timestamp}]</span>
                     <span style="color: ${entry.color}; font-weight: bold;">[${entry.levelName}]</span>
@@ -194,42 +194,42 @@
                     ${argsText ? `<span style="margin-left: 5px; font-style: italic; color: #bdc3c7;">${argsText}</span>` : ''}
                 </div>`;
             }
-            
+
             this.logElement.innerHTML = logHTML;
         },
-        
+
         // 清除日志
-        clearLogs: function() {
+        clearLogs: function () {
             this.logCache = [];
             if (this.logElement) {
                 this.logElement.innerHTML = '';
             }
             this.info('日志已清除');
         },
-        
+
         // 设置日志UI元素
-        setLogElement: function(element) {
+        setLogElement: function (element) {
             this.logElement = element;
             this.updateLogDisplay();
         },
-        
+
         // 快捷方法: 调试日志
-        debug: function(message, ...args) {
+        debug: function (message, ...args) {
             this.log(this.LEVELS.DEBUG, message, ...args);
         },
-        
+
         // 快捷方法: 信息日志
-        info: function(message, ...args) {
+        info: function (message, ...args) {
             this.log(this.LEVELS.INFO, message, ...args);
         },
-        
+
         // 快捷方法: 警告日志
-        warn: function(message, ...args) {
+        warn: function (message, ...args) {
             this.log(this.LEVELS.WARN, message, ...args);
         },
-        
+
         // 快捷方法: 错误日志
-        error: function(message, ...args) {
+        error: function (message, ...args) {
             this.log(this.LEVELS.ERROR, message, ...args);
         }
     };
@@ -335,6 +335,13 @@
     panel.innerHTML = `
         <h2>Automata全能助手</h2>
         <div id="social-links" style="text-align: right; margin-bottom: 10px; display: flex; justify-content: flex-end; gap: 15px;">
+
+           <a href="https://github.com/MarshalT/automata/blob/main/image.png" target="_blank" style="color: #FF6B6B; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center;"> 
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FF6B6B" style="margin-right: 5px;">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.72.54-3.31 1.46-4.62.37.89 1.24 1.5 2.24 1.5 1.38 0 2.5-1.12 2.5-2.5 0-1-.61-1.87-1.5-2.24C9.69 3.54 11.28 3 13 3c4.41 0 8 3.59 8 8s-3.59 8-8 8z"/>
+                </svg>
+                赞赏作者
+            </a> 
             <a href="https://x.com/zhang_etc" target="_blank" style="color: #1DA1F2; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" style="margin-right: 5px;">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
@@ -347,6 +354,8 @@
                 </svg>
                 GitHub
             </a>
+         
+
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
             <div id="bounty-pool-container" style="background-color: #2c3e50; padding: 10px; border-radius: 5px; text-align: center; border: 1px solid #3498db; flex: 1; margin-right: 5px;">
@@ -461,27 +470,27 @@
         if (logContent) {
             Logger.setLogElement(logContent);
         }
-        
+
         // 设置日志级别选择器
         const logLevelSelector = document.getElementById('log-level-selector');
         if (logLevelSelector) {
             // 设置初始值
             logLevelSelector.value = Logger.getLevelName(Logger.currentLevel);
-            
+
             // 添加事件监听
-            logLevelSelector.addEventListener('change', function() {
+            logLevelSelector.addEventListener('change', function () {
                 Logger.setLevel(this.value);
             });
         }
-        
+
         // 设置日志显示开关
         const logDisplayToggle = document.getElementById('log-display-toggle');
         if (logDisplayToggle) {
             // 设置初始值
             logDisplayToggle.checked = Logger.showInUI;
-            
+
             // 添加事件监听
-            logDisplayToggle.addEventListener('change', function() {
+            logDisplayToggle.addEventListener('change', function () {
                 Logger.showInUI = this.checked;
                 const logArea = document.getElementById('log-display-area');
                 if (logArea) {
@@ -490,22 +499,22 @@
                 GM_setValue('automataLogger_showInUI', Logger.showInUI);
                 Logger.info(`日志界面显示已${Logger.showInUI ? '启用' : '禁用'}`);
             });
-            
+
             // 设置日志区域初始显示状态
             const logArea = document.getElementById('log-display-area');
             if (logArea) {
                 logArea.style.display = Logger.showInUI ? 'block' : 'none';
             }
         }
-        
+
         // 设置清除日志按钮
         const clearLogsButton = document.getElementById('clear-logs-button');
         if (clearLogsButton) {
-            clearLogsButton.addEventListener('click', function() {
+            clearLogsButton.addEventListener('click', function () {
                 Logger.clearLogs();
             });
         }
-        
+
         Logger.info('日志系统界面初始化完成');
     }
 
@@ -946,7 +955,7 @@
     // 使用 DexScreener API 获取价格 (主要方式)
     function getAtmPriceFromDexScreener() {
         const url = `https://api.dexscreener.com/latest/dex/tokens/${ATM_TOKEN.address}`;
-        Logger.info('请求DexScreener API:', url); 
+        Logger.info('请求DexScreener API:', url);
 
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -1737,7 +1746,7 @@
 
     // 定义一个函数来运行测试
     function runTest() {
-            Logger.info('[程序优化器] 开始执行火箭点击测试...');
+        Logger.info('[程序优化器] 开始执行火箭点击测试...');
         testRocketImage();
     }
 
@@ -1798,14 +1807,14 @@
     setupAutoClickToggle();
 
     // 页面加载完成时
-    window.addEventListener('load', function() {
+    window.addEventListener('load', function () {
         Logger.info('页面加载完成');
-        
+
         // 启动自动检测
-        setTimeout(function() {
+        setTimeout(function () {
             const panel = document.getElementById('card-optimizer-panel');
             const toggleButton = document.querySelector('.toggle-button');
-            
+
             if (panel && panel.style.display === 'none') {
                 Logger.debug('自动显示面板');
                 panel.style.display = 'block';
@@ -1820,8 +1829,8 @@
     function processAPIResponse(response, url) {
         // 检查DOM元素是否已准备好
         if (!document.getElementById('card-optimizer-panel')) {
-            Logger.info(`[程序优化器] DOM元素未准备好，延迟处理响应`);  
-         
+            Logger.info(`[程序优化器] DOM元素未准备好，延迟处理响应`);
+
             setTimeout(() => processAPIResponse(response, url), 1000);
             return;
         }
@@ -1986,7 +1995,7 @@
 
                         // 获取机器人属性
                         const robotAttributes = obj.attributes || [];
-                        
+
                         // 计算机器人类型和能量消耗
                         // 机器人类型从1开始，所以索引+1
                         const robotType = index + 1;
@@ -2014,7 +2023,7 @@
                                         index: cardIndex,
                                         adjustedDuration
                                     });
-                                    
+
                                     // 其余代码保持不变...
 
                                     // 累积卡片属性
@@ -2038,7 +2047,7 @@
                                         // 计算当前卡片的属性增益
                                         // 如果rootAttributes[3] > 0，使用log2(robotAttributes[3])的整数部分来增加所有非负属性值
                                         if (robotAttributes[3] > 0) {
-                                            const logBonus = Math.floor(Math.log2(robotAttributes[3]+1)); // 取整数部分
+                                            const logBonus = Math.floor(Math.log2(robotAttributes[3] + 1)); // 取整数部分
                                             Logger.debug(`log2(${robotAttributes[3]}) = ${Math.log2(robotAttributes[3]).toFixed(4)}, 取整数部分: ${logBonus}`);
                                             // 对所有非负属性值应用log2增益
                                             for (let i = 0; i < processedCardAttrs.length && i < 8; i++) {
@@ -2061,7 +2070,7 @@
                                 Logger.error(`处理卡片时出错: ${cardErr.message}`);
                             }
                         });
-                        
+
                         // 存储解析结果
                         objectsData.push({
                             index,
@@ -2074,7 +2083,7 @@
                             robotType: index + 1, // 添加机器人类型
                             energyPerRun: index + 1, // 添加每次运行消耗的能量
                             runsPerDay: totalDuration > 0 ? Math.floor(86400 / totalDuration) : 0, // 添加每日运行次数 次数要整数
- 
+
                             dailyEnergyConsumption: totalDuration > 0 ? Math.floor((index + 1) * (86400 / totalDuration)) : 0 // 添加每日能量消耗 能量要整数
                         });
                     } else {
@@ -2109,7 +2118,7 @@
                 // 24小时 = 86400秒
                 const secondsPerDay = 86400;
                 let dailyEnergyConsumption = 0;
-                
+
                 // 计算每个机器人每天运行的次数和消耗的能量
                 objectsData.forEach((data, index) => {
                     if (data.totalDuration > 0) {
@@ -2121,17 +2130,17 @@
                         const runsPerDay = secondsPerDay / data.totalDuration;
                         // 该机器人每天消耗的能量
                         const robotDailyEnergy = runsPerDay * energyPerRun;
-                        
+
                         Logger.info(`[程序优化器] 机器人#${robotType} 每次运行时间: ${data.totalDuration}秒, 每天运行: ${runsPerDay.toFixed(2)}次, 每天消耗: ${robotDailyEnergy.toFixed(2)}能量`);
-                        
+
                         dailyEnergyConsumption += robotDailyEnergy;
                     }
                 });
-                
+
                 // 首先显示已获取的程序卡数据信息
                 let cardsCountText = cardsData && cardsData.length > 0 ?
                     `<div style="color:#4CAF50; font-weight:bold; margin-bottom: 10px;">已获取 ${cardsData.length} 张程序数据</div>` : '';
-                
+
                 // 显示每日能量消耗
                 const energyConsumptionText = `
                     <div style="margin: 10px 0; padding: 12px; background: rgba(52, 73, 94, 0.1); border-radius: 8px; border-left: 4px solid #e74c3c;">
@@ -2395,7 +2404,7 @@
                 const netAttributes = totalAttributes.map((attr, index) => attr - localAttrsCopy[index]);
                 const netScore = netAttributes.reduce((sum, val) => sum + val, 0);
 
-                    Logger.info(`[程序优化器] 有效组合: ${combination.join(',')} - 得分: ${netScore}`);
+                Logger.info(`[程序优化器] 有效组合: ${combination.join(',')} - 得分: ${netScore}`);
 
                 // 对于显示目的，我们确保最终属性不显示负值
                 const displayAttributes = totalAttributes.map(val => Math.max(0, val));
@@ -2602,7 +2611,7 @@
             result.push(bestNoNegativeSolution[0]);
         }
 
-            Logger.info(`[程序优化器] 返回 ${result.length} 个解决方案`);
+        Logger.info(`[程序优化器] 返回 ${result.length} 个解决方案`);
         return result;
     }
 
