@@ -320,28 +320,116 @@
             border-radius: 4px;
             cursor: pointer;
         }
+        /* 赞赏弹窗样式 */
+        .qrcode-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .qrcode-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .qrcode-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 300px;
+            position: relative;
+        }
+        .qrcode-container img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .qrcode-title {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .qrcode-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f44336;
+            color: white;
+            border: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .qrcode-message {
+            color: #666;
+            margin-top: 15px;
+            font-size: 14px;
+        }
     `);
 
     // 创建面板切换按钮
     const toggleButton = document.createElement('button');
     toggleButton.className = 'toggle-button';
-    toggleButton.textContent = '显示程序优化器';
+    toggleButton.textContent = '显示Automata助手';
+    toggleButton.style.display = 'none'; // 初始隐藏，等待检测后显示
     document.body.appendChild(toggleButton);
 
-    // 创建优化器面板
+    // 创建赞赏弹窗
+    const qrcodeOverlay = document.createElement('div');
+    qrcodeOverlay.className = 'qrcode-overlay';
+    qrcodeOverlay.innerHTML = `
+        <div class="qrcode-container">
+            <button class="qrcode-close">×</button>
+            <div class="qrcode-title">赞赏作者</div>
+            <img src="https://raw.githubusercontent.com/MarshalT/automata/main/image.png" alt="赞赏二维码">
+            <div class="qrcode-message">感谢您的支持！</div>
+        </div>
+    `;
+    document.body.appendChild(qrcodeOverlay);
+    
+    // 添加关闭弹窗事件
+    const closeButton = qrcodeOverlay.querySelector('.qrcode-close');
+    closeButton.addEventListener('click', function() {
+        qrcodeOverlay.classList.remove('active');
+    });
+    
+    // 点击弹窗背景关闭
+    qrcodeOverlay.addEventListener('click', function(e) {
+        if (e.target === qrcodeOverlay) {
+            qrcodeOverlay.classList.remove('active');
+        }
+    });
+
+    // 创建面板
     const panel = document.createElement('div');
     panel.id = 'card-optimizer-panel';
     panel.style.display = 'none';
     panel.innerHTML = `
         <h2>Automata全能助手</h2>
         <div id="social-links" style="text-align: right; margin-bottom: 10px; display: flex; justify-content: flex-end; gap: 15px;">
-
-           <a href="https://github.com/MarshalT/automata/blob/main/image.png" target="_blank" style="color: #FF6B6B; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center;"> 
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FF6B6B" style="margin-right: 5px;">
+            <a href="javascript:void(0);" id="donate-link" style="color: #FF6B6B; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FF6B6B" style="margin-right: 5px;">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.72.54-3.31 1.46-4.62.37.89 1.24 1.5 2.24 1.5 1.38 0 2.5-1.12 2.5-2.5 0-1-.61-1.87-1.5-2.24C9.69 3.54 11.28 3 13 3c4.41 0 8 3.59 8 8s-3.59 8-8 8z"/>
                 </svg>
                 赞赏作者
-            </a> 
+            </a>
             <a href="https://x.com/zhang_etc" target="_blank" style="color: #1DA1F2; text-decoration: none; font-size: 14px; display: inline-flex; align-items: center;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#1DA1F2" style="margin-right: 5px;">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
@@ -354,8 +442,6 @@
                 </svg>
                 GitHub
             </a>
-         
-
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
             <div id="bounty-pool-container" style="background-color: #2c3e50; padding: 10px; border-radius: 5px; text-align: center; border: 1px solid #3498db; flex: 1; margin-right: 5px;">
@@ -462,6 +548,18 @@
             toggleButton.textContent = '显示Automata助手';
         }
     });
+
+    // 添加赞赏链接点击事件
+    setTimeout(function() {
+        const donateLink = document.getElementById('donate-link');
+        if (donateLink) {
+            donateLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                qrcodeOverlay.classList.add('active');
+                Logger.info('显示赞赏二维码');
+            });
+        }
+    }, 1000);
 
     // 初始化日志系统界面
     function initLoggerUI() {
