@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Automata全能助手
 // @namespace    http://tampermonkey.net/
-// @version      0.1.2
+// @version      0.1.3
 // @description  监控zkwasm-automata API请求，优化程序组合，自动点击火箭和确认按钮，显示能量统计
 // @author       溶进咖啡的糖  AI助手
 // @match        https://automata.zkplay.app/*
@@ -11,6 +11,8 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @grant        GM_log
+// @grant        GM_setValue
+// @grant        GM_getValue
 // @connect      *
 // @connect      api.dexscreener.com
 // @connect      api.geckoterminal.com
@@ -21,6 +23,219 @@
 
 (function () {
     'use strict';
+
+    // ===== 日志管理模块 =====
+    const Logger = {
+        // 日志级别定义
+        LEVELS: {
+            DEBUG: 0,  // 调试信息，最详细
+            INFO: 1,   // 一般信息 
+            WARN: 2,   // 警告信息
+            ERROR: 3,  // 错误信息
+            NONE: 4    // 不显示任何日志
+        },
+        
+        // 日志颜色定义
+        COLORS: {
+            DEBUG: '#7f8c8d', // 灰色
+            INFO: '#3498db',  // 蓝色
+            WARN: '#f39c12',  // 橙色
+            ERROR: '#e74c3c', // 红色
+            SYSTEM: '#2ecc71' // 绿色
+        },
+        
+        // 当前日志级别，默认为INFO
+        currentLevel: 1,
+        
+        // 是否在界面中显示日志
+        showInUI: true,
+        
+        // 日志UI元素引用
+        logElement: null,
+        
+        // 日志缓存，存储最近的日志用于UI显示
+        logCache: [],
+        maxCacheSize: 100,
+        
+        // 初始化日志设置，从localStorage读取
+        init: function() {
+            // 尝试从存储中读取日志设置
+            try {
+                this.currentLevel = parseInt(GM_getValue('automataLogger_level', this.currentLevel));
+                this.showInUI = GM_getValue('automataLogger_showInUI', this.showInUI);
+            } catch (e) {
+                console.error('初始化日志设置出错:', e);
+            }
+            
+            console.log(`[AutomataLogger] 初始化完成，日志级别: ${this.getLevelName(this.currentLevel)}, 界面显示: ${this.showInUI}`);
+        },
+        
+        // 根据级别数值获取级别名称
+        getLevelName: function(level) {
+            for (const name in this.LEVELS) {
+                if (this.LEVELS[name] === level) {
+                    return name;
+                }
+            }
+            return 'UNKNOWN';
+        },
+        
+        // 设置日志级别
+        setLevel: function(level) {
+            if (typeof level === 'string') {
+                level = this.LEVELS[level] || this.LEVELS.INFO;
+            }
+            this.currentLevel = level;
+            GM_setValue('automataLogger_level', level);
+            
+            // 更新UI上的日志级别选择器
+            const selector = document.getElementById('log-level-selector');
+            if (selector) {
+                selector.value = this.getLevelName(level);
+            }
+            
+            this.info(`日志级别已设置为: ${this.getLevelName(level)}`);
+        },
+        
+        // 切换界面日志显示
+        toggleUIDisplay: function() {
+            this.showInUI = !this.showInUI;
+            GM_setValue('automataLogger_showInUI', this.showInUI);
+            
+            // 更新UI上的开关状态
+            const checkbox = document.getElementById('log-display-toggle');
+            if (checkbox) {
+                checkbox.checked = this.showInUI;
+            }
+            
+            // 更新日志区域显示状态
+            const logArea = document.getElementById('log-display-area');
+            if (logArea) {
+                logArea.style.display = this.showInUI ? 'block' : 'none';
+            }
+            
+            this.info(`日志界面显示已${this.showInUI ? '启用' : '禁用'}`);
+        },
+        
+        // 记录日志
+        log: function(level, message, ...args) {
+            // 如果当前级别低于设置的级别，不记录
+            if (level < this.currentLevel) {
+                return;
+            }
+            
+            const levelName = this.getLevelName(level);
+            const timestamp = new Date().toLocaleTimeString();
+            const formattedMessage = `[${levelName}] ${message}`;
+            
+            // 控制台输出
+            if (level >= this.LEVELS.ERROR) {
+                console.error(`[${timestamp}] ${formattedMessage}`, ...args);
+            } else if (level >= this.LEVELS.WARN) {
+                console.warn(`[${timestamp}] ${formattedMessage}`, ...args);
+            } else {
+                console.log(`[${timestamp}] ${formattedMessage}`, ...args);
+            }
+            
+            // 组装日志记录对象
+            const logEntry = {
+                level: level,
+                levelName: levelName,
+                timestamp: timestamp,
+                message: message,
+                args: args,
+                color: this.COLORS[levelName] || '#ffffff'
+            };
+            
+            // 添加到日志缓存
+            this.logCache.unshift(logEntry);
+            
+            // 保持缓存大小不超过上限
+            if (this.logCache.length > this.maxCacheSize) {
+                this.logCache.pop();
+            }
+            
+            // 如果已创建UI，则更新UI显示
+            this.updateLogDisplay();
+        },
+        
+        // 更新界面日志显示
+        updateLogDisplay: function() {
+            if (!this.showInUI || !this.logElement) {
+                return;
+            }
+            
+            // 更新日志显示区域
+            let logHTML = '';
+            for (const entry of this.logCache) {
+                // 跳过低于当前级别的日志
+                if (entry.level < this.currentLevel) {
+                    continue;
+                }
+                
+                let argsText = '';
+                if (entry.args && entry.args.length > 0) {
+                    argsText = entry.args.map(arg => {
+                        if (typeof arg === 'object') {
+                            try {
+                                return JSON.stringify(arg);
+                            } catch (e) {
+                                return '[Object]';
+                            }
+                        }
+                        return arg;
+                    }).join(' ');
+                }
+                
+                logHTML += `<div style="margin: 3px 0; color: ${entry.color}">
+                    <span style="color: #95a5a6; font-size: 0.85em;">[${entry.timestamp}]</span>
+                    <span style="color: ${entry.color}; font-weight: bold;">[${entry.levelName}]</span>
+                    <span>${entry.message}</span>
+                    ${argsText ? `<span style="margin-left: 5px; font-style: italic; color: #bdc3c7;">${argsText}</span>` : ''}
+                </div>`;
+            }
+            
+            this.logElement.innerHTML = logHTML;
+        },
+        
+        // 清除日志
+        clearLogs: function() {
+            this.logCache = [];
+            if (this.logElement) {
+                this.logElement.innerHTML = '';
+            }
+            this.info('日志已清除');
+        },
+        
+        // 设置日志UI元素
+        setLogElement: function(element) {
+            this.logElement = element;
+            this.updateLogDisplay();
+        },
+        
+        // 快捷方法: 调试日志
+        debug: function(message, ...args) {
+            this.log(this.LEVELS.DEBUG, message, ...args);
+        },
+        
+        // 快捷方法: 信息日志
+        info: function(message, ...args) {
+            this.log(this.LEVELS.INFO, message, ...args);
+        },
+        
+        // 快捷方法: 警告日志
+        warn: function(message, ...args) {
+            this.log(this.LEVELS.WARN, message, ...args);
+        },
+        
+        // 快捷方法: 错误日志
+        error: function(message, ...args) {
+            this.log(this.LEVELS.ERROR, message, ...args);
+        }
+    };
+
+    // 初始化日志系统
+    Logger.init();
 
     // 添加CSS样式
     GM_addStyle(`
@@ -240,6 +455,31 @@
             </style>
         </div>
 
+        <!-- 新增日志控制部分 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin-bottom: 15px; background-color: #2c3e50; border-radius: 5px; border: 1px solid #3498db;">
+            <div style="font-size: 16px; font-weight: bold;">日志显示</div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <select id="log-level-selector" style="background-color: #34495e; color: white; border: none; padding: 5px; border-radius: 4px;">
+                    <option value="DEBUG">调试</option>
+                    <option value="INFO" selected>信息</option>
+                    <option value="WARN">警告</option>
+                    <option value="ERROR">错误</option>
+                    <option value="NONE">禁用</option>
+                </select>
+                <label class="auto-click-switch" style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                    <input type="checkbox" id="log-display-toggle" checked>
+                    <span class="auto-click-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; transition: .4s; border-radius: 34px;"></span>
+                </label>
+            </div>
+        </div>
+        <div id="log-display-area" style="max-height: 200px; overflow-y: auto; margin-bottom: 15px; background-color: #1e272e; border-radius: 5px; padding: 10px; font-family: monospace; font-size: 12px; color: #ecf0f1; display: block;">
+            <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold; color: #3498db;">系统日志</span>
+                <button id="clear-logs-button" style="background-color: #7f8c8d; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 10px;">清除</button>
+            </div>
+            <div id="log-content">等待日志输出...</div>
+        </div>
+
         <div id="card-data-status">等待程序数据...</div>
         <div id="optimization-controls" style="display: none;">
             <button id="run-optimizer">运行优化</button>
@@ -259,6 +499,64 @@
             toggleButton.textContent = '显示Automata助手';
         }
     });
+
+    // 初始化日志系统界面
+    function initLoggerUI() {
+        // 设置日志显示区域
+        const logContent = document.getElementById('log-content');
+        if (logContent) {
+            Logger.setLogElement(logContent);
+        }
+        
+        // 设置日志级别选择器
+        const logLevelSelector = document.getElementById('log-level-selector');
+        if (logLevelSelector) {
+            // 设置初始值
+            logLevelSelector.value = Logger.getLevelName(Logger.currentLevel);
+            
+            // 添加事件监听
+            logLevelSelector.addEventListener('change', function() {
+                Logger.setLevel(this.value);
+            });
+        }
+        
+        // 设置日志显示开关
+        const logDisplayToggle = document.getElementById('log-display-toggle');
+        if (logDisplayToggle) {
+            // 设置初始值
+            logDisplayToggle.checked = Logger.showInUI;
+            
+            // 添加事件监听
+            logDisplayToggle.addEventListener('change', function() {
+                Logger.showInUI = this.checked;
+                const logArea = document.getElementById('log-display-area');
+                if (logArea) {
+                    logArea.style.display = Logger.showInUI ? 'block' : 'none';
+                }
+                GM_setValue('automataLogger_showInUI', Logger.showInUI);
+                Logger.info(`日志界面显示已${Logger.showInUI ? '启用' : '禁用'}`);
+            });
+            
+            // 设置日志区域初始显示状态
+            const logArea = document.getElementById('log-display-area');
+            if (logArea) {
+                logArea.style.display = Logger.showInUI ? 'block' : 'none';
+            }
+        }
+        
+        // 设置清除日志按钮
+        const clearLogsButton = document.getElementById('clear-logs-button');
+        if (clearLogsButton) {
+            clearLogsButton.addEventListener('click', function() {
+                Logger.clearLogs();
+            });
+        }
+        
+        Logger.info('日志系统界面初始化完成');
+    }
+
+    // 在页面加载完成后初始化日志界面
+    setTimeout(initLoggerUI, 500);
 
     // 添加ATM价格双击事件，导航到PancakeSwap交易页面
     const atmPriceContainer = document.getElementById('atm-price-container');
@@ -290,20 +588,8 @@
 
     // 添加调试信息到面板
     function addDebugInfo(message) {
-        // 始终在控制台输出火箭和确认按钮监控相关信息
-        if (message.includes('rocket-image') || message.includes('确认按钮')) {
-            console.log(`[程序优化器] ${message}`);
-            return;
-        }
-
-        return; // 禁用其他调试信息
-        if (!dataStatus) return; // 避免在DOM加载前调用
-
-        const debugInfo = document.createElement('div');
-        debugInfo.style.color = '#FFC107';
-        debugInfo.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-        dataStatus.appendChild(debugInfo);
-        console.log(`[程序优化器] ${message}`);
+        // 使用统一的日志系统替代
+        Logger.debug(message);
     }
 
     // 存储请求队列，处理延时请求
@@ -317,14 +603,14 @@
         isProcessingQueue = true;
         const request = requestQueue.shift();
 
-        console.log(`[程序优化器] 处理队列中的请求: ${request.url}`);
+        Logger.debug(`处理队列中的请求: ${request.url}`);
 
         // 延迟处理请求，避免阻塞UI
         setTimeout(() => {
             try {
                 processAPIResponse(request.data, request.url);
             } catch (e) {
-                console.error(`[程序优化器] 处理请求出错: ${e.message}`);
+                Logger.error(`处理请求出错: ${e.message}`);
             }
 
             isProcessingQueue = false;
@@ -341,8 +627,8 @@
         processRequestQueue();
     }
 
-    // 初始调试信息
-    addDebugInfo('脚本已加载，等待网络请求...');
+    // 添加初始调试信息
+    Logger.info('脚本已加载，等待网络请求...');
 
     // 拦截XHR请求 - 参考m.js实现
     try {
@@ -357,7 +643,7 @@
             this._url = url;
             this._method = method;
             this._requestData = null;
-            console.log(`[程序优化器] XHR请求: ${method} ${url}`);
+            Logger.debug(`XHR请求: ${method} ${url}`);
             return originalXHROpen.apply(this, arguments);
         };
 
@@ -372,7 +658,7 @@
                         if (data.trim().startsWith('{')) {
                             // 尝试解析JSON
                             const jsonData = JSON.parse(data);
-                            console.log(`[程序优化器] 请求数据: ${JSON.stringify(jsonData).substring(0, 100)}...`);
+                            Logger.debug(`请求数据: ${JSON.stringify(jsonData).substring(0, 100)}...`);
 
                             // 检查是否是目标请求
                             if (this._url && (
@@ -381,7 +667,7 @@
                                 this._url.includes('rpc') ||
                                 this._url.includes('automata')
                             )) {
-                                console.log(`[程序优化器] 目标请求: ${this._url}`);
+                                Logger.debug(`目标请求: ${this._url}`);
                             }
                         } else if (data.includes('=') && data.includes('&')) {
                             // 尝试解析URL编码的表单数据
@@ -390,7 +676,7 @@
                                 const [key, value] = pair.split('=');
                                 formData[decodeURIComponent(key)] = decodeURIComponent(value);
                             });
-                            console.log(`[程序优化器] 表单数据: ${JSON.stringify(formData)}`);
+                            Logger.debug(`表单数据: ${JSON.stringify(formData)}`);
                         }
                     } catch (e) {
                         // 忽略解析错误
@@ -408,37 +694,37 @@
                     this.addEventListener('load', function () {
                         try {
                             let responseData = this.responseText;
-                            console.log(`[程序优化器] 收到响应: ${this.status} ${this._url}`);
+                            Logger.debug(`收到响应: ${this.status} ${this._url}`);
 
                             // 尝试解析JSON
                             if (responseData && responseData.trim().startsWith('{')) {
                                 try {
                                     const jsonResponse = JSON.parse(responseData);
-                                    console.log(`[程序优化器] 响应数据长度: ${responseData.length}`);
+                                    Logger.debug(`响应数据长度: ${responseData.length}`);
 
                                     // 将请求添加到队列中处理，避免阻塞UI
                                     setTimeout(() => {
                                         processAPIResponse(jsonResponse, this._url);
                                     }, 100);
                                 } catch (e) {
-                                    console.error(`[程序优化器] 解析JSON失败: ${e.message}`);
+                                    Logger.error(`解析JSON失败: ${e.message}`);
                                 }
                             }
                         } catch (e) {
-                            console.error(`[程序优化器] 处理响应错误: ${e.message}`);
+                            Logger.error(`处理响应错误: ${e.message}`);
                         }
                     });
                 }
             } catch (e) {
-                console.error(`[程序优化器] XHR send错误: ${e.message}`);
+                Logger.error(`XHR send错误: ${e.message}`);
             }
 
             return originalXHRSend.apply(this, arguments);
         };
 
-        console.log('[程序优化器] 成功拦截XMLHttpRequest');
+        Logger.info('成功拦截XMLHttpRequest');
     } catch (e) {
-        console.error(`[程序优化器] 拦截XMLHttpRequest失败: ${e.message}`);
+        Logger.error(`拦截XMLHttpRequest失败: ${e.message}`);
     }
 
     // 使用Fetch API拦截 - 参考m.js实现
@@ -451,7 +737,7 @@
             try {
                 // 获取URL
                 const requestUrl = (typeof url === 'string') ? url : (url.url || '');
-                console.log(`[程序优化器] Fetch请求: ${requestUrl}`);
+                Logger.debug(`Fetch请求: ${requestUrl}`);
 
                 // 检查是否是目标请求
                 const isTargetRequest = requestUrl.includes('/query') ||
@@ -468,7 +754,7 @@
                         if (requestBody.trim().startsWith('{')) {
                             try {
                                 const jsonBody = JSON.parse(requestBody);
-                                console.log(`[程序优化器] Fetch请求数据: ${JSON.stringify(jsonBody).substring(0, 100)}...`);
+                                Logger.debug(`Fetch请求数据: ${JSON.stringify(jsonBody).substring(0, 100)}...`);
                             } catch (e) { /* 不是JSON */ }
                         } else if (requestBody.includes('=') && requestBody.includes('&')) {
                             try {
@@ -478,7 +764,7 @@
                                     const [key, value] = pair.split('=');
                                     formData[decodeURIComponent(key)] = decodeURIComponent(value);
                                 });
-                                console.log(`[程序优化器] Fetch表单数据: ${JSON.stringify(formData)}`);
+                                Logger.debug(`Fetch表单数据: ${JSON.stringify(formData)}`);
                             } catch (e) { /* 忽略解析错误 */ }
                         }
                     }
@@ -489,7 +775,7 @@
 
                 // 处理目标请求的响应
                 if (isTargetRequest) {
-                    console.log(`[程序优化器] Fetch响应: ${response.status} ${requestUrl}`);
+                    Logger.debug(`Fetch响应: ${response.status} ${requestUrl}`);
 
                     // 克隆响应以便可以多次读取内容
                     const clone = response.clone();
@@ -501,24 +787,24 @@
                         if (text && text.trim().startsWith('{')) {
                             try {
                                 responseData = JSON.parse(text);
-                                console.log(`[程序优化器] Fetch响应数据长度: ${text.length}`);
+                                Logger.debug(`Fetch响应数据长度: ${text.length}`);
 
                                 // 延迟处理响应数据，避免阻塞UI
                                 setTimeout(() => {
                                     processAPIResponse(responseData, requestUrl);
                                 }, 100);
                             } catch (e) {
-                                console.error(`[程序优化器] 解析JSON失败: ${e.message}`);
+                                Logger.error(`解析JSON失败: ${e.message}`);
                             }
                         }
                     } catch (e) {
-                        console.error(`[程序优化器] 处理Fetch响应错误: ${e.message}`);
+                        Logger.error(`处理Fetch响应错误: ${e.message}`);
                     }
                 }
 
                 return response;
             } catch (e) {
-                console.error(`[程序优化器] Fetch请求错误: ${e.message}`);
+                Logger.error(`Fetch请求错误: ${e.message}`);
                 return originalFetch.apply(this, arguments);
             }
         };
@@ -528,9 +814,9 @@
             unsafeWindow.fetch = window.fetch;
         }
 
-        console.log('[程序优化器] 成功拦截Fetch API');
+        Logger.info('成功拦截Fetch API');
     } catch (e) {
-        console.error(`[程序优化器] 拦截Fetch API失败: ${e.message}`);
+        Logger.error(`拦截Fetch API失败: ${e.message}`);
     }
 
     // 定期检查网页中的程序数据
@@ -1307,34 +1593,34 @@
 
     // 监控和点击火箭图像
     function testRocketImage() {
-        console.log('[程序优化器] 开始测试火箭图像点击...');
+        Logger.debug('开始测试火箭图像点击...');
         const rocketElements = document.querySelectorAll('.rocket-image');
 
         if (rocketElements && rocketElements.length > 0) {
-            console.log(`[Automata助手] 发现 ${rocketElements.length} 个可能是火箭的元素`);
+            Logger.info(`发现 ${rocketElements.length} 个可能是火箭的元素`);
 
             for (const rocket of rocketElements) {
                 try {
                     if (simulateClick(rocket)) {
-                        console.log('[Automata助手] 成功点击火箭元素');
+                        Logger.info('成功点击火箭元素');
                         // 火箭图像点击成功后，延迟2秒再点击确认按钮
                         setTimeout(testConfirmButton, 2000);
                         return; // 只点击第一个找到的火箭图像
                     } else {
-                        console.log('[Automata助手] 点击火箭元素失败');
+                        Logger.warn('点击火箭元素失败');
                     }
                 } catch (e) {
-                    console.error(`[Automata助手] 点击火箭元素时出错: ${e.message}`);
+                    Logger.error(`点击火箭元素时出错: ${e.message}`);
                 }
             }
         } else {
-            console.log('[Automata助手] 未找到火箭元素');
+            Logger.debug('未找到火箭元素');
         }
     }
 
     // 点击屏幕最下方
     function clickBottomOfScreen() {
-        console.log('[程序优化器] 尝试点击屏幕最下方...');
+        Logger.debug('尝试点击屏幕最下方...');
         try {
             // 获取屏幕高度
             const screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
@@ -1358,24 +1644,24 @@
                 const element = document.elementFromPoint(centerX, bottomY);
                 if (element) {
                     element.dispatchEvent(clickEvent);
-                    console.log(`[程序优化器] 成功点击屏幕最下方元素: ${element.tagName}`);
+                    Logger.info(`成功点击屏幕最下方元素: ${element.tagName}`);
                 } else {
                     // 如果没有找到元素，尝试点击文档体
                     document.body.dispatchEvent(clickEvent);
-                    console.log('[程序优化器] 没有在指定位置找到元素，已点击文档体');
+                    Logger.info('没有在指定位置找到元素，已点击文档体');
                 }
             } catch (e) {
-                console.error(`[程序优化器] 点击屏幕最下方失败: ${e.message}`);
+                Logger.error(`点击屏幕最下方失败: ${e.message}`);
                 // 备用方案：尝试点击页面上最后一个元素
                 const allElements = document.querySelectorAll('*');
                 if (allElements && allElements.length > 0) {
                     const lastElement = allElements[allElements.length - 1];
                     simulateClick(lastElement);
-                    console.log(`[程序优化器] 尝试点击页面最后一个元素: ${lastElement.tagName}`);
+                    Logger.info(`尝试点击页面最后一个元素: ${lastElement.tagName}`);
                 }
             }
         } catch (e) {
-            console.error(`[程序优化器] 点击屏幕最下方时出错: ${e.message}`);
+            Logger.error(`点击屏幕最下方时出错: ${e.message}`);
         }
     }
 
@@ -1386,19 +1672,19 @@
             return;
         }
 
-        console.log('[Automata助手] 开始测试确认按钮点击...');
+        Logger.debug('开始测试确认按钮点击...');
 
         // 尝试通过查找图片元素
         const confirmImages = document.querySelectorAll('img[src*="confirm"], img[src*="Confirm"]');
         if (confirmImages && confirmImages.length > 0) {
-            console.log(`[程序优化器] 发现 ${confirmImages.length} 个确认图片元素`);
+            Logger.debug(`发现 ${confirmImages.length} 个确认图片元素`);
             for (const img of confirmImages) {
                 try {
                     // 尝试各种方式找到按钮并点击
                     const button = img.closest('button') || img.parentElement;
                     if (button) {
                         if (simulateClick(button)) {
-                            console.log('[程序优化器] 成功点击确认按钮 (通过图片)');
+                            Logger.info('成功点击确认按钮 (通过图片)');
                             // 确认按钮点击后，延迟1秒再点击屏幕最下方
                             setTimeout(clickBottomOfScreen, 1000);
                             return;
@@ -1407,13 +1693,13 @@
 
                     // 如果上面的方法没有找到按钮，尝试直接点击图片
                     if (simulateClick(img)) {
-                        console.log('[程序优化器] 成功点击确认图片');
+                        Logger.info('成功点击确认图片');
                         // 确认按钮点击后，延迟1秒再点击屏幕最下方
                         setTimeout(clickBottomOfScreen, 1000);
                         return;
                     }
                 } catch (e) {
-                    console.error(`[程序优化器] 点击确认图片失败: ${e.message}`);
+                    Logger.error(`点击确认图片失败: ${e.message}`);
                 }
             }
         }
@@ -1428,7 +1714,7 @@
         for (const selector of selectors) {
             const buttons = document.querySelectorAll(selector);
             if (buttons && buttons.length > 0) {
-                console.log(`[程序优化器] 使用选择器 "${selector}" 找到 ${buttons.length} 个按钮`);
+                Logger.info(`[程序优化器] 使用选择器 "${selector}" 找到 ${buttons.length} 个按钮`);
                 foundButtons = true;
 
                 for (const button of buttons) {
@@ -1442,15 +1728,15 @@
                     if (selector !== 'button' || isConfirmButton) {
                         try {
                             if (simulateClick(button)) {
-                                console.log('[程序优化器] 成功点击确认按钮');
+                                Logger.info('[程序优化器] 成功点击确认按钮');
                                 // 确认按钮点击后，延迟1秒再点击屏幕最下方
                                 setTimeout(clickBottomOfScreen, 1000);
                                 return; // 只点击第一个找到的确认按钮
                             } else {
-                                console.log('[程序优化器] 点击确认按钮失败');
+                                Logger.warn('[程序优化器] 点击确认按钮失败');
                             }
                         } catch (e) {
-                            console.error(`[程序优化器] 点击确认按钮时出错: ${e.message}`);
+                            Logger.error(`[程序优化器] 点击确认按钮时出错: ${e.message}`);
                         }
                     }
                 }
@@ -1460,44 +1746,44 @@
         // 尝试查找包含 rocket-popup-confirm-button 的元素
         const popupConfirm = document.querySelector('.rocket-popup-confirm-button');
         if (popupConfirm) {
-            console.log('[程序优化器] 发现 rocket-popup-confirm-button 元素，尝试点击其中的按钮...');
+            Logger.info('[程序优化器] 发现 rocket-popup-confirm-button 元素，尝试点击其中的按钮...');
             const buttons = popupConfirm.querySelectorAll('button');
             if (buttons && buttons.length > 0) {
                 for (const btn of buttons) {
                     try {
                         if (simulateClick(btn)) {
-                            console.log('[程序优化器] 成功点击 rocket-popup-confirm-button 中的按钮');
+                            Logger.info('[程序优化器] 成功点击 rocket-popup-confirm-button 中的按钮');
                             // 确认按钮点击后，延迟1秒再点击屏幕最下方
                             setTimeout(clickBottomOfScreen, 1000);
                             return;
                         }
                     } catch (e) {
-                        console.error(`[程序优化器] 点击 rocket-popup-confirm-button 中的按钮失败: ${e.message}`);
+                        Logger.error(`[程序优化器] 点击 rocket-popup-confirm-button 中的按钮失败: ${e.message}`);
                     }
                 }
             } else {
                 // 如果没有找到按钮，尝试直接点击容器
                 try {
                     if (simulateClick(popupConfirm)) {
-                        console.log('[程序优化器] 成功点击 rocket-popup-confirm-button 元素');
+                        Logger.info('[程序优化器] 成功点击 rocket-popup-confirm-button 元素');
                         // 确认按钮点击后，延迟1秒再点击屏幕最下方
                         setTimeout(clickBottomOfScreen, 1000);
                         return;
                     }
                 } catch (e) {
-                    console.error(`[程序优化器] 点击 rocket-popup-confirm-button 元素失败: ${e.message}`);
+                    Logger.error(`[程序优化器] 点击 rocket-popup-confirm-button 元素失败: ${e.message}`);
                 }
             }
         }
 
         if (!foundButtons) {
-            console.log('[程序优化器] 未找到确认按钮');
+            Logger.warn('[程序优化器] 未找到确认按钮');
         }
     }
 
     // 定义一个函数来运行测试
     function runTest() {
-        console.log('[程序优化器] 开始执行火箭点击测试...');
+            Logger.info('[程序优化器] 开始执行火箭点击测试...');
         testRocketImage();
     }
 
@@ -1515,7 +1801,7 @@
             // 添加切换事件
             toggleCheckbox.addEventListener('change', function () {
                 autoClickEnabled = this.checked;
-                console.log(`[Automata助手] 自动点击火箭功能已${autoClickEnabled ? '启用' : '禁用'}`);
+                Logger.info(`[Automata助手] 自动点击火箭功能已${autoClickEnabled ? '启用' : '禁用'}`);
 
                 if (autoClickEnabled) {
                     // 开启功能 - 立即执行一次并启动定时器
@@ -1540,7 +1826,7 @@
                 testRocketImage();
             }
         }, 10000);
-        console.log('[Automata助手] 自动点击定时器已启动');
+        Logger.info('[Automata助手] 自动点击定时器已启动');
     }
 
     // 停止自动点击定时器
@@ -1548,7 +1834,7 @@
         if (autoClickIntervalId !== null) {
             clearInterval(autoClickIntervalId);
             autoClickIntervalId = null;
-            console.log('[Automata助手] 自动点击定时器已停止');
+            Logger.info('[Automata助手] 自动点击定时器已停止');
         }
     }
 
@@ -1556,11 +1842,30 @@
     setTimeout(scheduleDataCheck, 3000); // 页面加载3秒后开始检查
     setupAutoClickToggle();
 
+    // 页面加载完成时
+    window.addEventListener('load', function() {
+        Logger.info('页面加载完成');
+        
+        // 启动自动检测
+        setTimeout(function() {
+            const panel = document.getElementById('card-optimizer-panel');
+            const toggleButton = document.querySelector('.toggle-button');
+            
+            if (panel && panel.style.display === 'none') {
+                Logger.debug('自动显示面板');
+                panel.style.display = 'block';
+                if (toggleButton) {
+                    toggleButton.textContent = '隐藏Automata助手';
+                }
+            }
+        }, 5000);
+    });
+
     // 处理API响应
     function processAPIResponse(response, url) {
         // 检查DOM元素是否已准备好
         if (!document.getElementById('card-optimizer-panel')) {
-            console.log(`[程序优化器] DOM元素未准备好，延迟处理响应`);
+            Logger.info(`[程序优化器] DOM元素未准备好，延迟处理响应`);  
             setTimeout(() => processAPIResponse(response, url), 1000);
             return;
         }
@@ -1568,12 +1873,12 @@
         // 确保dataStatus元素存在
         const dataStatusElement = document.getElementById('card-data-status');
         if (!dataStatusElement) {
-            console.log(`[程序优化器] 数据状态元素未找到，延迟处理响应`);
+            Logger.info(`[程序优化器] 数据状态元素未找到，延迟处理响应`);
             setTimeout(() => processAPIResponse(response, url), 1000);
             return;
         }
 
-        console.log(`[程序优化器] 处理来自 ${url} 的响应`);
+        Logger.info(`[程序优化器] 处理来自 ${url} 的响应`);
 
         // 提取并显示bounty_pool信息
         if (response && response.state && response.state.bounty_pool) {
@@ -1586,12 +1891,12 @@
             try {
                 // 嵌套的JSON数据
                 const nestedData = JSON.parse(response.data);
-                console.log('[程序优化器] 成功解析嵌套的JSON数据');
+                Logger.info('[程序优化器] 成功解析嵌套的JSON数据');
 
                 // 递归处理解析后的JSON数据
                 processAPIResponse(nestedData, url + " (嵌套数据)");
             } catch (e) {
-                console.error('[程序优化器] 解析嵌套JSON数据失败:', e);
+                Logger.error('[程序优化器] 解析嵌套JSON数据失败:', e);
             }
             return; // 避免重复处理
         }
@@ -1617,16 +1922,16 @@
                     window.localAttributes = [...playerData.local];
                     // 确保有8个属性
                     while (window.localAttributes.length < 8) window.localAttributes.push(0);
-                    console.log(`[程序优化器] 提取到local数组:`, window.localAttributes);
+                    Logger.info(`[程序优化器] 提取到local数组:`, window.localAttributes);
                     addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
                     //提取local数组 的最后一个元素 当值大于10000时 自动点击火箭  结合自动点击功能 定时器
                     const lastLocalValue = window.localAttributes[window.localAttributes.length - 1];
-                    console.log(`[程序优化器] local数组最后一个元素值: ${lastLocalValue}`);
+                    Logger.info(`[程序优化器] local数组最后一个元素值: ${lastLocalValue}`);
                     addDebugInfo(`local数组最后一个元素值: ${lastLocalValue}`);
 
                     // 当值大于10000时自动点击火箭
                     if (lastLocalValue > 10000) {
-                        console.log(`[程序优化器] ATM值超过10000(${lastLocalValue})，自动开启火箭点击`);
+                        Logger.info(`[程序优化器] ATM值超过10000(${lastLocalValue})，自动开启火箭点击`);
                         addDebugInfo(`ATM能量超过10000(${lastLocalValue})，自动开启火箭点击`);
 
                         // 启用自动点击功能
@@ -1644,7 +1949,7 @@
                         //     toggleCheckbox.checked = true;
                         // }
                     } else {
-                        console.log(`[程序优化器] ATM值未超过10000(${lastLocalValue})，自动关闭火箭点击`);
+                        Logger.info(`[程序优化器] ATM值未超过10000(${lastLocalValue})，自动关闭火箭点击`);
                         addDebugInfo(`ATM能量未超过10000(${lastLocalValue})，自动关闭火箭点击`);
                         autoClickEnabled = false;
                         // 更新UI上的开关状态（如果存在）
@@ -1681,10 +1986,10 @@
             // 同时也尝试提取objects数组和cards数组进行时长分析
             if (playerData.objects && Array.isArray(playerData.objects) &&
                 playerData.cards && Array.isArray(playerData.cards)) {
-                console.log('[程序优化器] 在player.data路径下找到objects和cards数组');
+                Logger.info('[程序优化器] 在player.data路径下找到objects和cards数组');
                 objectsData = processObjectsAndCards(playerData.objects, playerData.cards);
             } else {
-                console.log('[程序优化器] player.data存在但未找到有效的objects和cards数组');
+                Logger.info('[程序优化器] player.data存在但未找到有效的objects和cards数组');
             }
         }
 
@@ -1704,7 +2009,7 @@
      * 处理objects和cards数组，计算时长
      */
     function processObjectsAndCards(objects, cards) {
-        console.log('[程序优化器] 开始处理objects和cards数组', {
+        Logger.info('开始处理objects和cards数组', {
             objectsLength: objects.length,
             cardsLength: cards.length
         });
@@ -1739,7 +2044,7 @@
                                 if (typeof cardIndex === 'number' &&
                                     cards[cardIndex] &&
                                     typeof cards[cardIndex].duration === 'number') {
-                                    console.log(`[程序优化器] 机器人属性: ${robotAttributes}`);
+                                    Logger.debug(`机器人属性: ${robotAttributes}`);
                                     const duration = cards[cardIndex].duration * 5; // 基础时长
                                     const speed = robotAttributes[1]; // 速度参数
                                     let adjustedDuration = duration; // 默认不使用速度修正
@@ -1778,13 +2083,13 @@
                                         // 如果rootAttributes[3] > 0，使用log2(robotAttributes[3])的整数部分来增加所有非负属性值
                                         if (robotAttributes[3] > 0) {
                                             const logBonus = Math.floor(Math.log2(robotAttributes[3]+1)); // 取整数部分
-                                            console.log(`[程序优化器] log2(${robotAttributes[3]}) = ${Math.log2(robotAttributes[3]).toFixed(4)}, 取整数部分: ${logBonus}`);
+                                            Logger.debug(`log2(${robotAttributes[3]}) = ${Math.log2(robotAttributes[3]).toFixed(4)}, 取整数部分: ${logBonus}`);
                                             // 对所有非负属性值应用log2增益
                                             for (let i = 0; i < processedCardAttrs.length && i < 8; i++) {
                                                 if (processedCardAttrs[i] > 0) {
                                                     const originalValue = processedCardAttrs[i];
                                                     processedCardAttrs[i] += logBonus; // 所有非负属性值增加logBonus
-                                                    console.log(`[程序优化器] 属性${i}增加: ${originalValue} + ${logBonus} = ${processedCardAttrs[i]}`);
+                                                    Logger.debug(`属性${i}增加: ${originalValue} + ${logBonus} = ${processedCardAttrs[i]}`);
                                                 }
                                             }
                                         }
@@ -1794,10 +2099,10 @@
                                         }
                                     }
                                 } else {
-                                    console.warn(`[程序优化器] 无效的卡片索引或缺少duration属性: ${cardIndex}`);
+                                    Logger.warn(`无效的卡片索引或缺少duration属性: ${cardIndex}`);
                                 }
                             } catch (cardErr) {
-                                console.error(`[程序优化器] 处理卡片时出错: ${cardErr.message}`);
+                                Logger.error(`处理卡片时出错: ${cardErr.message}`);
                             }
                         });
                         
@@ -1813,25 +2118,25 @@
                             robotType: index + 1, // 添加机器人类型
                             energyPerRun: index + 1, // 添加每次运行消耗的能量
                             runsPerDay: totalDuration > 0 ? Math.floor(86400 / totalDuration) : 0, // 添加每日运行次数 次数要整数
-
+ 
                             dailyEnergyConsumption: totalDuration > 0 ? Math.floor((index + 1) * (86400 / totalDuration)) : 0 // 添加每日能量消耗 能量要整数
                         });
                     } else {
-                        console.warn(`[程序优化器] 对象 #${index} 缺少有效的cards数组`);
+                        Logger.warn(`对象 #${index} 缺少有效的cards数组`);
                     }
                 } catch (objErr) {
-                    console.error(`[程序优化器] 处理对象 #${index} 时出错: ${objErr.message}`);
+                    Logger.error(`处理对象 #${index} 时出错: ${objErr.message}`);
                 }
             });
 
-            console.log('[程序优化器] 解析完成，共解析 ' + objectsData.length + ' 个对象');
-            console.log('[程序优化器] 总能量消耗: ' + totalEnergyConsumption);
+            Logger.info('解析完成，共解析 ' + objectsData.length + ' 个对象');
+            Logger.info('总能量消耗: ' + totalEnergyConsumption);
 
             // 对解析结果按总时长排序
             objectsData.sort((a, b) => a.totalDuration - b.totalDuration);
 
         } catch (error) {
-            console.error(`[程序优化器] 解析对象时出错: ${error.message}`, error);
+            Logger.error(`解析对象时出错: ${error.message}`, error);
         }
 
         return objectsData;
@@ -1861,7 +2166,7 @@
                         // 该机器人每天消耗的能量
                         const robotDailyEnergy = runsPerDay * energyPerRun;
                         
-                        console.log(`[程序优化器] 机器人#${robotType} 每次运行时间: ${data.totalDuration}秒, 每天运行: ${runsPerDay.toFixed(2)}次, 每天消耗: ${robotDailyEnergy.toFixed(2)}能量`);
+                        Logger.info(`[程序优化器] 机器人#${robotType} 每次运行时间: ${data.totalDuration}秒, 每天运行: ${runsPerDay.toFixed(2)}次, 每天消耗: ${robotDailyEnergy.toFixed(2)}能量`);
                         
                         dailyEnergyConsumption += robotDailyEnergy;
                     }
@@ -1947,7 +2252,7 @@
                 // 更新显示内容
                 targetElement.innerHTML = htmlContent;
 
-                console.log('[程序优化器] 已将机器人时长分析显示在数据状态区域');
+                Logger.info('[程序优化器] 已将机器人时长分析显示在数据状态区域');
                 return;
             }
 
@@ -1955,7 +2260,7 @@
             // 保留作为后备方案
             // ... existing code for creating a separate display element ...
         } catch (error) {
-            console.error(`[程序优化器] 显示对象数据时出错: ${error.message}`, error);
+            Logger.error(`[程序优化器] 显示对象数据时出错: ${error.message}`, error);
         }
     }
 
@@ -2019,7 +2324,7 @@
                 window.localAttributes = [...window.fullApiResponse.player.data.local];
                 // 确保有8个属性
                 while (window.localAttributes.length < 8) window.localAttributes.push(0);
-                console.log(`[程序优化器] 从完整响应中找到local数组:`, window.localAttributes);
+                Logger.info(`[程序优化器] 从完整响应中找到local数组:`, window.localAttributes);
                 addDebugInfo(`找到local数组: ${JSON.stringify(window.localAttributes)}`);
             }
         }
@@ -2031,7 +2336,7 @@
 
             // 输出程序数据结构以便调试
             if (index === 0) {
-                console.log(`[程序优化器] 程序数据示例:`, JSON.stringify(card, null, 2));
+                Logger.info(`[程序优化器] 程序数据示例:`, JSON.stringify(card, null, 2));
             }
 
             // 方式1: automata特定格式 - 直接使用attributes数组
@@ -2039,7 +2344,7 @@
                 attributes = [...card.attributes];
                 // 确保有8个属性
                 while (attributes.length < 8) attributes.push(0);
-                console.log(`[程序优化器] 使用方式1(attributes数组)解析程序属性:`, attributes);
+                Logger.info(`[程序优化器] 使用方式1(attributes数组)解析程序属性:`, attributes);
             }
 
             // 如果是第一张卡，显示属性信息
@@ -2047,7 +2352,7 @@
                 addDebugInfo(`程序属性示例: ${JSON.stringify(attributes)}`);
             }
 
-            console.log(`[程序优化器] 程序属性:`, attributes);
+            Logger.info(`[程序优化器] 程序属性:`, attributes);
             return attributes;
         });
 
@@ -2134,7 +2439,7 @@
                 const netAttributes = totalAttributes.map((attr, index) => attr - localAttrsCopy[index]);
                 const netScore = netAttributes.reduce((sum, val) => sum + val, 0);
 
-                console.log(`[程序优化器] 有效组合: ${combination.join(',')} - 得分: ${netScore}`);
+                    Logger.info(`[程序优化器] 有效组合: ${combination.join(',')} - 得分: ${netScore}`);
 
                 // 对于显示目的，我们确保最终属性不显示负值
                 const displayAttributes = totalAttributes.map(val => Math.max(0, val));
@@ -2302,11 +2607,11 @@
         maxSolutions = solutionsList.length;
         const topSolutions = solutionsList.slice(0, maxSolutions);
 
-        console.log(`[程序优化器] 找到 ${solutionsList.length} 个不同的有效组合`);
+        Logger.info(`[程序优化器] 找到 ${solutionsList.length} 个不同的有效组合`);
 
         // 输出详细的解决方案数据
         topSolutions.forEach((solution, index) => {
-            console.log(`解决方案 ${index + 1}:
+            Logger.info(`解决方案 ${index + 1}:
 ` +
                 `  程序组合: ${solution.solution.join(', ')}
 ` +
@@ -2341,7 +2646,7 @@
             result.push(bestNoNegativeSolution[0]);
         }
 
-        console.log(`[程序优化器] 返回 ${result.length} 个解决方案`);
+            Logger.info(`[程序优化器] 返回 ${result.length} 个解决方案`);
         return result;
     }
 
@@ -2509,13 +2814,13 @@
             } else if (typeof attr === 'string' && !isNaN(attr)) {
                 return parseFloat(attr);
             } else {
-                console.log(`[程序优化器] 非数字属性:`, attr);
+                Logger.info(`[程序优化器] 非数字属性:`, attr);
                 return 0;
             }
         });
 
         // 输出属性值用于调试
-        console.log(`[程序优化器] 格式化属性值:`, numericAttrs);
+        Logger.info(`[程序优化器] 格式化属性值:`, numericAttrs);
 
         return numericAttrs.map(attr => {
             if (attr > 0) {
@@ -2549,7 +2854,7 @@
 
     // 格式化持续时间函数
     function formatDuration(seconds) {
-        console.log(`[程序优化器] 格式化持续时间:`, seconds);
+        Logger.info(`[程序优化器] 格式化持续时间:`, seconds);
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         const remainingSeconds = Math.floor(seconds % 60); // 强制取整，不要小数
@@ -2563,7 +2868,7 @@
         }
         result += `${remainingSeconds}秒`; // 确保秒数无小数
 
-        console.log(`[程序优化器] 格式化持续时间:`, result);
+        Logger.info(`[程序优化器] 格式化持续时间:`, result);
         return result;
 
 
