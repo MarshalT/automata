@@ -405,53 +405,7 @@
                 }
 
                 /* 开启状态 - 绿色 */
-                #auto-click-toggle:checked + .auto-click-slider {
-                    background-color: #2ecc71 !important; /* 绿色(开启状态) 使用!important确保优先级 */
-                }
-
-                .auto-click-switch input:focus + .auto-click-slider {
-                    box-shadow: 0 0 3px #2ecc71;
-                }
-
-                /* 滑块圆形按钮 */
-                .auto-click-slider:before {
-                    position: absolute;
-                    content: "";
-                    height: 18px;
-                    width: 18px;
-                    left: 3px;
-                    bottom: 3px;
-                    background-color: white;
-                    transition: .4s;
-                    border-radius: 50%;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                }
-
-                /* 开启状态时滑块位置 */
-                #auto-click-toggle:checked + .auto-click-slider:before {
-                    transform: translateX(26px);
-                }
-
-                /* 添加开关状态文字 */
-                #auto-click-toggle:checked + .auto-click-slider:after {
-                    content: "开";
-                    color: white;
-                    position: absolute;
-                    left: 8px;
-                    bottom: 4px;
-                    font-size: 12px;
-                    font-weight: bold;
-                }
-
-                #auto-click-toggle:not(:checked) + .auto-click-slider:after {
-                    content: "关";
-                    color: white;
-                    position: absolute;
-                    right: 6px;
-                    bottom: 4px;
-                    font-size: 12px;
-                    font-weight: bold;
-                }
+                .auto-click-switch input:checked + .auto-click-slider {    background-color: #2ecc71 !important; /* 绿色(开启状态) 使用!important确保优先级 */}.auto-click-switch input:focus + .auto-click-slider {    box-shadow: 0 0 3px #2ecc71;}/* 滑块圆形按钮 */.auto-click-slider:before {    position: absolute;    content: "";    height: 18px;    width: 18px;    left: 3px;    bottom: 3px;    background-color: white;    transition: .4s;    border-radius: 50%;    box-shadow: 0 2px 5px rgba(0,0,0,0.2);}/* 开启状态时滑块位置 */.auto-click-switch input:checked + .auto-click-slider:before {    transform: translateX(26px);}/* 添加开关状态文字 */.auto-click-switch input:checked + .auto-click-slider:after {    content: "开";    color: white;    position: absolute;    left: 8px;    bottom: 4px;    font-size: 12px;    font-weight: bold;}.auto-click-switch input:not(:checked) + .auto-click-slider:after {    content: "关";    color: white;    position: absolute;    right: 6px;    bottom: 4px;    font-size: 12px;    font-weight: bold;}
             </style>
         </div>
 
@@ -992,7 +946,7 @@
     // 使用 DexScreener API 获取价格 (主要方式)
     function getAtmPriceFromDexScreener() {
         const url = `https://api.dexscreener.com/latest/dex/tokens/${ATM_TOKEN.address}`;
-        console.log('请求DexScreener API:', url);
+        Logger.info('请求DexScreener API:', url); 
 
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -1007,7 +961,7 @@
                     try {
                         if (response.status === 200) {
                             const data = JSON.parse(response.responseText);
-                            console.log('DexScreener 完整响应:', data);
+                            Logger.info('DexScreener 完整响应:', data);
 
                             if (data && data.pairs && data.pairs.length > 0) {
                                 // 选择交易量最大的交易对
@@ -1015,7 +969,7 @@
                                     return parseFloat(b.volume.h24) - parseFloat(a.volume.h24);
                                 })[0];
 
-                                console.log('选中的交易对详情:', JSON.stringify(pair, null, 2));
+                                Logger.info('选中的交易对详情:', JSON.stringify(pair, null, 2));
 
                                 // 深入分析价格字段
                                 let price = 0;
@@ -1023,18 +977,18 @@
                                 // 检查所有可能包含价格的字段
                                 if (pair.priceUsd && !isNaN(parseFloat(pair.priceUsd))) {
                                     price = parseFloat(pair.priceUsd);
-                                    console.log('从priceUsd字段获取价格:', price);
+                                    Logger.info('从priceUsd字段获取价格:', price);
                                 } else if (pair.price && !isNaN(parseFloat(pair.price))) {
                                     price = parseFloat(pair.price);
-                                    console.log('从price字段获取价格:', price);
+                                    Logger.info('从price字段获取价格:', price);
                                 } else if (pair.baseToken && pair.baseToken.price && !isNaN(parseFloat(pair.baseToken.price))) {
                                     price = parseFloat(pair.baseToken.price);
-                                    console.log('从baseToken.price字段获取价格:', price);
+                                    Logger.info('从baseToken.price字段获取价格:', price);
                                 }
 
                                 // 如果仍未找到价格，尝试从其他信息推算
                                 if (price === 0) {
-                                    console.log('无法直接获取价格，使用默认测试价格');
+                                    Logger.info('无法直接获取价格，使用默认测试价格');
                                     price = 0.00012345; // 使用硬编码的测试价格，确保UI显示正常
                                 }
 
@@ -1042,14 +996,14 @@
                                 let priceChange = 0;
 
                                 if (pair.priceChange) {
-                                    console.log('原始 priceChange 数据:', JSON.stringify(pair.priceChange));
+                                    Logger.info('原始 priceChange 数据:', JSON.stringify(pair.priceChange));
                                     if (pair.priceChange.h24 !== undefined) {
                                         // 可能是数字或字符串形式
                                         try {
                                             priceChange = parseFloat(pair.priceChange.h24);
-                                            console.log('成功解析 24 小时价格变化:', priceChange);
+                                            Logger.info('成功解析 24 小时价格变化:', priceChange);
                                         } catch (e) {
-                                            console.error('解析 priceChange.h24 失败:', e);
+                                            Logger.error('解析 priceChange.h24 失败:', e);
                                         }
                                     }
                                 }
@@ -1059,7 +1013,7 @@
                                     // 从字符串中删除%符号并转换
                                     const cleanStr = pair.priceChange.h24.replace('%', '');
                                     priceChange = parseFloat(cleanStr);
-                                    console.log('从百分比格式提取数字:', priceChange);
+                                    Logger.info('从百分比格式提取数字:', priceChange);
                                 }
                                 const volume = pair.volume && pair.volume.h24 ? parseFloat(pair.volume.h24) : 0;
                                 const liquidity = pair.liquidity && pair.liquidity.usd ? parseFloat(pair.liquidity.usd) : 0;
@@ -1073,7 +1027,7 @@
                                     pairAddress: pair.pairAddress
                                 };
 
-                                console.log('处理后的价格数据:', result);
+                                Logger.info('处理后的价格数据:', result);
                                 resolve(result);
                             } else {
                                 reject('DexScreener API 返回中没有有效的交易对数据');
@@ -1086,17 +1040,17 @@
                     }
                 },
                 onerror: function (error) {
-                    console.error('DexScreener API 请求失败:', error);
+                    Logger.error('DexScreener API 请求失败:', error);
                     reject('DexScreener 请求出错: ' + (error.statusText || '网络错误'));
                 },
                 ontimeout: function () {
-                    console.error('DexScreener API 请求超时');
+                    Logger.error('DexScreener API 请求超时');
                     reject('DexScreener 请求超时');
                 },
                 // 增加错误详细记录以便调试
                 onreadystatechange: function (response) {
                     if (response.readyState === 4 && response.status === 0) {
-                        console.error('DexScreener API CORS错误:', response);
+                        Logger.error('DexScreener API CORS错误:', response);
                     }
                 }
             });
@@ -1205,25 +1159,25 @@
                     let result;
 
                     if (apiName === 'DexScreener') {
-                        console.log('尝试从 DexScreener 获取价格...');
+                        Logger.info('尝试从 DexScreener 获取价格...');
                         result = await getAtmPriceFromDexScreener();
                     }
                     else if (apiName === 'GeckoTerminal') {
-                        console.log('尝试从 GeckoTerminal 获取价格...');
+                        Logger.info('尝试从 GeckoTerminal 获取价格...');
                         result = await getAtmPriceFromGeckoTerminal();
                     }
                     else if (apiName === 'PancakeSwap') {
-                        console.log('尝试从 PancakeSwap 获取价格...');
+                        Logger.info('尝试从 PancakeSwap 获取价格...');
                         // PancakeSwap的调用在下面保留
                         continue;
                     }
 
                     if (result && result.price && result.price > 0) {
-                        console.log(`成功从 ${apiName} 获取价格:`, result.price);
+                        Logger.info(`成功从 ${apiName} 获取价格:`, result.price);
 
                         // 如果是GeckoTerminal但没有价格变化数据，添加确定性的数据
                         if (apiName === 'GeckoTerminal' && (!result.priceChange24h || result.priceChange24h === 0)) {
-                            console.log('GeckoTerminal没有返回涨幅数据，添加默认值');
+                            Logger.info('GeckoTerminal没有返回涨幅数据，添加默认值');
                             // 使用固定数据确保显示24小时涨幅
                             result.priceChange24h = 5.01; // 使用DexScreener测试中的数据
                         }
@@ -1233,17 +1187,17 @@
                             source: apiName
                         };
                     } else {
-                        console.log(`${apiName}返回的价格数据无效:`, result);
+                        Logger.info(`${apiName}返回的价格数据无效:`, result);
                         throw new Error(`${apiName} 返回的价格无效`);
                     }
                 } catch (e) {
-                    console.log(`${apiName} API 失败: ${e}，尝试下一个 API`);
+                    Logger.error(`${apiName} API 失败: ${e}，尝试下一个 API`);
                 }
             }
 
             // 最后尝试 PancakeSwap API
             try {
-                console.log('尝试从 PancakeSwap 获取价格...');
+                Logger.info('尝试从 PancakeSwap 获取价格...');
 
                 // PancakeSwap API URL
                 const url = `https://api.pancakeswap.info/api/v2/tokens/${ATM_TOKEN.address}`;
@@ -1257,7 +1211,7 @@
                             try {
                                 if (response.status === 200) {
                                     const data = JSON.parse(response.responseText);
-                                    console.log('PancakeSwap 原始响应:', data);
+                                    Logger.info('PancakeSwap 原始响应:', data);
 
                                     if (data && data.data && data.data.price) {
                                         const price = parseFloat(data.data.price);
@@ -1287,17 +1241,17 @@
                 });
 
                 if (result && result.price && result.price > 0) {
-                    console.log('成功从 PancakeSwap 获取价格:', result.price);
+                    Logger.info('成功从 PancakeSwap 获取价格:', result.price);
                     return {
                         ...result,
                         source: 'PancakeSwap'
                     };
                 } else {
-                    console.log('PancakeSwap返回的价格数据无效:', result);
+                    Logger.info('PancakeSwap返回的价格数据无效:', result);
                     throw new Error('PancakeSwap 返回的价格无效');
                 }
             } catch (e) {
-                console.log(`PancakeSwap API 失败: ${e}`);
+                Logger.error(`PancakeSwap API 失败: ${e}`);
             }
 
             // 所有API源均失败
@@ -1311,7 +1265,7 @@
     // 更新ATM价格显示
     async function updateAtmPriceDisplay() {
         // 日志输出确认函数被调用
-        console.log('===== 开始更新ATM价格显示 =====');
+        Logger.info('===== 开始更新ATM价格显示 =====');
 
         // 主面板中的价格显示总是可见的，不需要检查显示状态
 
@@ -1321,11 +1275,11 @@
 
         // 确认DOM元素存在
         if (!priceDisplay || !changeDisplay) {
-            console.error('ATM价格显示DOM元素不存在，无法更新价格');
+            Logger.error('ATM价格显示DOM元素不存在，无法更新价格');
             return;
         }
 
-        console.log('ATM价格显示DOM元素已找到，开始获取价格数据');
+        Logger.info('ATM价格显示DOM元素已找到，开始获取价格数据');
 
         try {
             // 设置加载状态
@@ -1334,13 +1288,13 @@
                 priceDisplay.className = ''; // 重置任何之前的类
             }
 
-            console.log('正在调用getAtmPrice函数获取价格...');
+            Logger.info('正在调用getAtmPrice函数获取价格...');
             const result = await getAtmPrice();
-            console.log('成功获取价格数据:', result);
+            Logger.info('成功获取价格数据:', result);
 
             // 检查价格结果是否有效
             if (!result || typeof result.price !== 'number') {
-                console.error('获取到的价格数据无效:', result);
+                Logger.error('获取到的价格数据无效:', result);
                 priceDisplay.textContent = '价格获取失败';
                 return;
             }
@@ -1358,7 +1312,7 @@
             } else {
                 formattedPrice = '$' + result.price.toFixed(2);
             }
-            console.log('格式化后的价格显示:', formattedPrice);
+            Logger.info('格式化后的价格显示:', formattedPrice);
 
             // 判断价格变化并设置颜色
             if (lastAtmPrice !== null) {
@@ -1373,19 +1327,19 @@
 
             // 更新显示内容 - 先设置内容防止"获取中..."显示问题
             priceDisplay.textContent = formattedPrice;
-            console.log('已将价格显示更新为:', formattedPrice);
+            Logger.info('已将价格显示更新为:', formattedPrice);
 
             // 记录价格用于下次比较
             lastAtmPrice = result.price;
 
             // 显示24小时价格变化
-            console.log('准备显示价格变化，数据:', result.priceChange24h);
+            Logger.info('准备显示价格变化，数据:', result.priceChange24h);
             if (result.priceChange24h !== undefined) {
                 const changePercent = result.priceChange24h;
                 let changeText = changePercent >= 0 ? '+' : '';
                 changeText += changePercent.toFixed(2) + '%';
 
-                console.log('格式化后的价格变化显示:', changeText);
+                Logger.info('格式化后的价格变化显示:', changeText);
 
                 if (changePercent > 0) {
                     changeDisplay.className = 'price-up';
@@ -1401,13 +1355,13 @@
                 // 如果没有价格变化数据，显示占位符
                 changeDisplay.className = '';
                 changeDisplay.textContent = '--';
-                console.log('没有价格变化数据可显示');
+                Logger.info('没有价格变化数据可显示');
             }
 
             // 主面板中不显示交易量和时间信息
 
         } catch (e) {
-            console.error('获取 ATM 价格出错:', e);
+            Logger.error('获取 ATM 价格出错:', e);
             priceDisplay.textContent = '无法获取价格';
             changeDisplay.textContent = '';
             // 不需要更新时间显示
@@ -1439,7 +1393,7 @@
         if (cardsData || checkCounter >= maxChecks) return;
 
         checkCounter++;
-        console.log(`[程序优化器] 定期检查 #${checkCounter}: 搜索网页中的程序数据...`);
+        Logger.info(`[程序优化器] 定期检查 #${checkCounter}: 搜索网页中的程序数据...`);
 
         // 尝试从全局变量中提取程序数据
         const extractData = function () {
@@ -1465,7 +1419,7 @@
                 if (Array.isArray(obj) && obj.length > 0 &&
                     (typeof obj[0] === 'object') &&
                     (obj[0].id !== undefined || obj[0].cardId !== undefined)) {
-                    console.log(`[程序优化器] 在路径 ${path} 找到可能的程序数组`);
+                    Logger.info(`[程序优化器] 在路径 ${path} 找到可能的程序数组`);
                     return obj;
                 }
 
@@ -1518,19 +1472,19 @@
                             if (result) return result;
                         }
                     } catch (e) {
-                        console.error(`[程序优化器] 搜索 window.${key} 时出错: ${e.message}`);
+                        Logger.error(`[程序优化器] 搜索 window.${key} 时出错: ${e.message}`);
                         continue;
                     }
                 }
             } catch (e) {
-                console.error(`[程序优化器] 搜索 window 属性时出错: ${e.message}`);
+                Logger.error(`[程序优化器] 搜索 window 属性时出错: ${e.message}`);
             }
             return null;
         };
 
         const extractedCards = extractData();
         if (extractedCards && extractedCards.length > 0) {
-            console.log(`[程序优化器] 定期检查找到 ${extractedCards.length} 张程序`);
+            Logger.info(`[程序优化器] 定期检查找到 ${extractedCards.length} 张程序`);
             processAPIResponse({ cards: extractedCards }, 'periodic-check');
         } else {
             // 如果没找到，继续定期检查
@@ -1561,7 +1515,7 @@
                 mouseupEvent.initEvent('mouseup', true, true);
                 element.dispatchEvent(mouseupEvent);
             } catch (innerError) {
-                console.log(`[程序优化器] 旧事件方式失败: ${innerError.message}, 尝试新方式`);
+                Logger.info(`[程序优化器] 旧事件方式失败: ${innerError.message}, 尝试新方式`);
                 // 如果MouseEvent对象可用，但不支持view属性
                 try {
                     const mousedownEvent = new MouseEvent('mousedown', {
@@ -1575,7 +1529,7 @@
                     element.dispatchEvent(mousedownEvent);
                     element.dispatchEvent(mouseupEvent);
                 } catch (mouseEventError) {
-                    console.log(`[程序优化器] 新MouseEvent方式也失败: ${mouseEventError.message}`);
+                    Logger.info(`[程序优化器] 新MouseEvent方式也失败: ${mouseEventError.message}`);
                 }
             }
 
@@ -1586,7 +1540,7 @@
 
             return true;
         } catch (e) {
-            console.error(`[程序优化器] 模拟点击失败: ${e.message}`);
+            Logger.error(`[程序优化器] 模拟点击失败: ${e.message}`);
             return false;
         }
     }
@@ -1840,6 +1794,7 @@
 
     // 启动定期检查
     setTimeout(scheduleDataCheck, 3000); // 页面加载3秒后开始检查
+    console.log('启动定期检查');
     setupAutoClickToggle();
 
     // 页面加载完成时
@@ -1866,6 +1821,7 @@
         // 检查DOM元素是否已准备好
         if (!document.getElementById('card-optimizer-panel')) {
             Logger.info(`[程序优化器] DOM元素未准备好，延迟处理响应`);  
+         
             setTimeout(() => processAPIResponse(response, url), 1000);
             return;
         }
