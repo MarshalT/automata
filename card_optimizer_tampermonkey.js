@@ -399,7 +399,7 @@
             <button class="qrcode-close">×</button>
             <div class="qrcode-title">赞赏作者</div>
             <img src="https://raw.githubusercontent.com/MarshalT/automata/main/image.png" alt="赞赏二维码">
-            <div class="qrcode-message">感谢您的支持！</div>
+            <div class="qrcode-message">如果这个工具对您有帮助，可以请我喝杯咖啡 ☕️</div>
         </div>
     `;
     document.body.appendChild(qrcodeOverlay);
