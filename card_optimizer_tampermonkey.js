@@ -1877,7 +1877,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="font-weight: bold; font-size: 15px; color: #34495e;">每日能量消耗</span>
                             <span style="color: #e74c3c; font-weight: bold;">
-                                ${dailyEnergyConsumption.toFixed(2)} 能量/天
+                                ${dailyEnergyConsumption.toFixed(0)} 能量/天
                             </span>
                         </div>
                     </div>`;
@@ -1928,8 +1928,8 @@
                                 </div>
                                 <div style="margin-top: 8px; display: flex; justify-content: space-between; font-size: 12px;">
                                     <span style="color: #e67e22;">能量消耗: <strong>${index + 1}</strong>/次</span>
-                                    <span style="color: #2980b9;">每日运行: <strong>${(86400 / data.totalDuration).toFixed(1)}</strong>次</span>
-                                    <span style="color: #e74c3c;">每日消耗: <strong>${((index + 1) * (86400 / data.totalDuration)).toFixed(1)}</strong>能量</span>
+                                    <span style="color: #2980b9;">每日运行: <strong>${(86400 / data.totalDuration).toFixed(0)}</strong>次</span>
+                                    <span style="color: #e74c3c;">每日消耗: <strong>${((index + 1) * (86400 / data.totalDuration)).toFixed(0)}</strong>能量</span>
                                 </div>
                             </div>`;
                         } catch (itemErr) {
