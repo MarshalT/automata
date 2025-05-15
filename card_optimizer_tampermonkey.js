@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Automata全能助手
 // @namespace    http://tampermonkey.net/
-// @version      0.1.1
-// @description  监控zkwasm-automata API请求，优化程序组合，自动点击火箭和确认按钮
+// @version      0.1.2
+// @description  监控zkwasm-automata API请求，优化程序组合，自动点击火箭和确认按钮，显示能量统计
 // @author       溶进咖啡的糖  AI助手
 // @match        https://automata.zkplay.app/*
 // @match        *://zkwasm-automata.zkwasm.ai/*
@@ -1710,6 +1710,7 @@
         });
 
         const objectsData = [];
+        let totalEnergyConsumption = 0; // 添加总能量消耗变量
 
         // 计算每个对象组合的总时长
         try {
@@ -1724,6 +1725,13 @@
 
                         // 获取机器人属性
                         const robotAttributes = obj.attributes || [];
+                        
+                        // 计算机器人类型和能量消耗
+                        // 机器人类型从1开始，所以索引+1
+                        const robotType = index + 1;
+                        // 能量消耗和机器人类型匹配
+                        const energyConsumption = robotType;
+                        totalEnergyConsumption += energyConsumption;
 
                         // 获取每张卡的时长并计算总时长
                         obj.cards.forEach((cardIndex, i) => {
@@ -1745,6 +1753,9 @@
                                         index: cardIndex,
                                         adjustedDuration
                                     });
+                                    
+                                    // 其余代码保持不变...
+
                                     // 累积卡片属性
                                     if (cards[cardIndex].attributes && Array.isArray(cards[cardIndex].attributes)) {
                                         const cardAttrs = cards[cardIndex].attributes;
@@ -1789,6 +1800,7 @@
                                 console.error(`[程序优化器] 处理卡片时出错: ${cardErr.message}`);
                             }
                         });
+                        
                         // 存储解析结果
                         objectsData.push({
                             index,
@@ -1797,7 +1809,12 @@
                             formattedDuration: formatDuration(totalDuration),
                             cardDurations,
                             attributes: obj.attributes,
-                            cumulativeAttributes: cumulativeAttributes.map(val => Math.round(val)) // 四舍五入到整数
+                            cumulativeAttributes: cumulativeAttributes.map(val => Math.round(val)), // 四舍五入到整数
+                            robotType: index + 1, // 添加机器人类型
+                            energyPerRun: index + 1, // 添加每次运行消耗的能量
+                            runsPerDay: totalDuration > 0 ? Math.floor(86400 / totalDuration) : 0, // 添加每日运行次数 次数要整数
+
+                            dailyEnergyConsumption: totalDuration > 0 ? Math.floor((index + 1) * (86400 / totalDuration)) : 0 // 添加每日能量消耗 能量要整数
                         });
                     } else {
                         console.warn(`[程序优化器] 对象 #${index} 缺少有效的cards数组`);
@@ -1808,6 +1825,7 @@
             });
 
             console.log('[程序优化器] 解析完成，共解析 ' + objectsData.length + ' 个对象');
+            console.log('[程序优化器] 总能量消耗: ' + totalEnergyConsumption);
 
             // 对解析结果按总时长排序
             objectsData.sort((a, b) => a.totalDuration - b.totalDuration);
@@ -1826,13 +1844,48 @@
         try {
             // 如果提供了目标元素，使用目标元素显示
             if (targetElement) {
+                // 计算每日能量消耗
+                // 24小时 = 86400秒
+                const secondsPerDay = 86400;
+                let dailyEnergyConsumption = 0;
+                
+                // 计算每个机器人每天运行的次数和消耗的能量
+                objectsData.forEach((data, index) => {
+                    if (data.totalDuration > 0) {
+                        // 机器人类型从1开始，所以索引+1
+                        const robotType = index + 1;
+                        // 每次运行消耗的能量等于机器人类型
+                        const energyPerRun = robotType;
+                        // 每天可以运行的次数
+                        const runsPerDay = secondsPerDay / data.totalDuration;
+                        // 该机器人每天消耗的能量
+                        const robotDailyEnergy = runsPerDay * energyPerRun;
+                        
+                        console.log(`[程序优化器] 机器人#${robotType} 每次运行时间: ${data.totalDuration}秒, 每天运行: ${runsPerDay.toFixed(2)}次, 每天消耗: ${robotDailyEnergy.toFixed(2)}能量`);
+                        
+                        dailyEnergyConsumption += robotDailyEnergy;
+                    }
+                });
+                
                 // 首先显示已获取的程序卡数据信息
                 let cardsCountText = cardsData && cardsData.length > 0 ?
                     `<div style="color:#4CAF50; font-weight:bold; margin-bottom: 10px;">已获取 ${cardsData.length} 张程序数据</div>` : '';
+                
+                // 显示每日能量消耗
+                const energyConsumptionText = `
+                    <div style="margin: 10px 0; padding: 12px; background: rgba(52, 73, 94, 0.1); border-radius: 8px; border-left: 4px solid #e74c3c;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: bold; font-size: 15px; color: #34495e;">每日能量消耗</span>
+                            <span style="color: #e74c3c; font-weight: bold;">
+                                ${dailyEnergyConsumption.toFixed(2)} 能量/天
+                            </span>
+                        </div>
+                    </div>`;
 
                 // 生成显示内容HTML
                 let htmlContent = `
                 ${cardsCountText}
+                ${energyConsumptionText}
                 <div style="font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #27ae60;">${objectsData.length} 个机器人</div>`;
 
                 if (objectsData.length === 0) {
@@ -1872,6 +1925,11 @@
                                 </div>
                                 <div style="margin-top: 5px; font-size: 13px; color: #7f8c8d;">
                                     <span>${cumulativeAttributesText}</span>
+                                </div>
+                                <div style="margin-top: 8px; display: flex; justify-content: space-between; font-size: 12px;">
+                                    <span style="color: #e67e22;">能量消耗: <strong>${index + 1}</strong>/次</span>
+                                    <span style="color: #2980b9;">每日运行: <strong>${(86400 / data.totalDuration).toFixed(1)}</strong>次</span>
+                                    <span style="color: #e74c3c;">每日消耗: <strong>${((index + 1) * (86400 / data.totalDuration)).toFixed(1)}</strong>能量</span>
                                 </div>
                             </div>`;
                         } catch (itemErr) {
