@@ -388,7 +388,7 @@
     const toggleButton = document.createElement('button');
     toggleButton.className = 'toggle-button';
     toggleButton.textContent = '显示Automata助手';
-    toggleButton.style.display = 'none'; // 初始隐藏，等待检测后显示
+    // toggleButton.style.display = 'none'; // 初始隐藏，等待检测后显示
     document.body.appendChild(toggleButton);
 
     // 创建赞赏弹窗
