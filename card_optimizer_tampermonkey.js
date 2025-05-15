@@ -1255,7 +1255,7 @@
 
         // 考虑到DexScreener可能发生跨域错误，切换优先顺序
         // GeckoTerminal在某些环境下对CORS更友好
-        const apiOrder = ['GeckoTerminal', 'DexScreener', 'PancakeSwap'];
+        const apiOrder = ['DexScreener', 'DexScreener', 'DexScreener'];
 
         console.log('API调用顺序:', apiOrder);
 
